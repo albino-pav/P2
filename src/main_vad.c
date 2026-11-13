@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
   int frame_size;         /* in samples */
   float frame_duration;   /* in seconds */
   unsigned int t, last_t; /* in frames */
+  unsigned int t_undef = 0; int in_undef = 0;
 
   char	*input_wav, *output_vad, *output_wav;
 
@@ -85,13 +86,21 @@ int main(int argc, char *argv[]) {
     state = vad(vad_data, buffer, llindar);
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout, llindar);
 
-    /* TODO: print only SILENCE and VOICE labels */
-    /* As it is, it prints UNDEF segments but is should be merge to the proper value */
-    if (state != last_state) {
-      if (t != last_t)
-        fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
-      last_state = state;
-      last_t = t;
+    /* Només s'escriuen etiquetes S i V. Les trames UNDEF (dubtoses) s'assignen
+       a l'estat anterior si no hi ha canvi, o al nou estat si el canvi es confirma
+       (el canvi es situa a l'inici del tram dubtós). */
+    if (state == ST_UNDEF) {
+      if (!in_undef) { in_undef = 1; t_undef = t; }
+    } else {
+      if (last_state == ST_UNDEF) {            /* primera decisió */
+        last_state = state;
+        last_t = 0;
+      } else if (state != last_state) {        /* canvi confirmat */
+        fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t_undef * frame_duration, state2str(last_state));
+        last_state = state;
+        last_t = t_undef;
+      }
+      in_undef = 0;
     }
 
     if (sndfile_out != 0) {
@@ -100,9 +109,9 @@ int main(int argc, char *argv[]) {
   }
 
   state = vad_close(vad_data);
-  /* TODO: what do you want to print, for last frames? */
-  if (t != last_t)
-    fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration + n_read / (float) sf_info.samplerate, state2str(state));
+  /* Últim segment: si no s'havia decidit res, s'usa l'estat que retorna vad_close */
+  if (last_state == ST_UNDEF) last_state = state;
+  fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration + n_read / (float) sf_info.samplerate, state2str(last_state));
 
   /* clean up: free memory, close open files */
   free(buffer);
