@@ -14,6 +14,7 @@ import tempfile
 
 import numpy as np
 import soundfile as sf
+from cerca_adaptativa import search
 
 ROOT = Path(__file__).resolve().parent.parent
 METHODS = ['veu_minima', 'silenci_minim', 'seguiment_soroll', 'histeresi',
@@ -21,6 +22,7 @@ METHODS = ['veu_minima', 'silenci_minim', 'seguiment_soroll', 'histeresi',
 PARAMS = ['inici', 'veu', 'silenci', 'marge', 'alfa', 'diferencia',
           'treu_pic', 'baixada', 'treu_dc', 'retroces']
 METRICS = ['total', 'recall_v', 'precision_v', 'recall_s', 'precision_s']
+STEP_FIELDS = ['pas_inici', 'pas_veu', 'pas_silenci', 'pas_marge', 'pas_log10_alfa', 'pas_diferencia']
 PROFILES = {
     'primer_ajust': (20, 5, 15, 8., .02),
     'base_6': (10, 8, 15, 6., .02),
@@ -32,7 +34,7 @@ PROFILES = {
 def arguments(config):
     init, voice, silence, margin, alpha, gap, trim, dip, dc, backdate = config
     args = [f'--inici={int(init)}', f'--veu={int(voice)}', f'--silenci={int(silence)}',
-            f'-l{margin:g}', f'--alfa={alpha:g}', f'--histeresi={gap:g}']
+            f'-l{margin:.9g}', f'--alfa={alpha:.9g}', f'--histeresi={gap:.9g}']
     for enabled, flag in [(trim, '--treu-pic'), (dip, '--permet-baixada'),
                           (dc, '--treu-dc'), (not backdate, '--sense-retroces')]:
         if enabled:
@@ -183,111 +185,23 @@ void evaluate(float *raw, float *dc, double *v, double *s, int *ends,
                 config[index] = 1
             assert round(evaluate(config)[0], 3) == known, (config, evaluate(config))
         fixed_rows, best_rows, best_configs = [], [], []
-        previous_path = results/'combinacions_abans_afinament.csv'
-        previous = {}
-        if previous_path.exists():
-            with previous_path.open() as stream:
-                previous = {tuple(int(row[key]) for key in METHODS): row for row in csv.DictReader(stream)}
-        refinement_rows = []
+        search_rows = []
+        limited_starts = 0
         for number, methods in enumerate(itertools.product((0, 1), repeat=len(METHODS))):
-            choices = []
+            # Els perfils històrics només serveixen de comparació, no d'inici de cerca.
             for name, profile in PROFILES.items():
                 config = initial_config(methods, profile)
-                score = evaluate(config)
-                fixed_rows.append(dict(zip(METHODS, methods), perfil=name, **dict(zip(PARAMS[:6], config[:6])),
-                                       **dict(zip(METRICS, score))))
-                choices.append(config)
-            best = max(choices, key=lambda c: evaluate(c)[0])
-            # La mateixa cerca petita per a cada grup de mètodes.
-            grids = [(0, [5, 9, 10, 15, 20]),
-                     (1, [5, 8, 10, 12] if methods[0] else [1]),
-                     (2, [10, 15, 17, 20, 25] if methods[1] else [1]),
-                     (3, [4., 5., 5.94, 6.63, 7., 8., 9.]),
-                     (4, [.003, .00615, .01, .02, .04] if methods[2] else [0.]),
-                     (5, [.5, 1., 1.5, 2.] if methods[3] else [0.])]
-            for _ in range(2):
-                for dimension, values in grids:
-                    candidates = [best]
-                    for value in values:
-                        c = list(best); c[dimension] = value
-                        if c[5] < c[3]:
-                            candidates.append(tuple(c))
-                    best = max(candidates, key=lambda c: evaluate(c)[0])
-            # Un afinament curt, igual per a totes les combinacions.
-            for dimension in range(6):
-                value = best[dimension]
-                if dimension in (0, 1, 2):
-                    values = [max(2 if dimension==0 else 1, value-1), value, value+1]
-                    if dimension in (1, 2) and not methods[dimension-1]:
-                        values = [1]
-                    elif dimension in (1, 2):
-                        values = [max(2, x) for x in values]
-                elif dimension==3:
-                    values = [round(value + delta, 4) for delta in (-.2, -.1, 0, .1, .2)]
-                elif dimension==4:
-                    values = [round(value*factor, 7) for factor in (.75, 1., 1.25)] if methods[2] else [0.]
-                else:
-                    values = [max(.1, value-.25), value, value+.25] if methods[3] else [0.]
-                candidates = [best]
-                for value in values:
-                    c = list(best); c[dimension] = value
-                    if c[5] < c[3]:
-                        candidates.append(tuple(c))
-                best = max(candidates, key=lambda c: evaluate(c)[0])
-            # Parteixo també del millor resultat de l'estudi anterior, si el tinc.
-            if methods in previous:
-                old = previous[methods]
-                prior = tuple(float(old[key]) for key in PARAMS[:6]) + tuple(methods[4:])
-                best = max([best, prior], key=lambda c: evaluate(c)[0])
-            before_fine = best
-            # Miro els voltants amb passos petits i repeteixo després de moure el centre.
-            for pass_number in range(3):
-                pass_start = best
-                for dimension in (0, 1, 2, 3, 4, 5):
-                    value = best[dimension]
-                    if dimension in (0, 1, 2):
-                        values = range(max(2 if dimension==0 or methods[dimension-1] else 1,
-                                           int(value)-2), int(value)+3)
-                        if dimension in (1, 2) and not methods[dimension-1]:
-                            values = [1]
-                    elif dimension==3:
-                        step = .02 if pass_number==0 else .01
-                        values = [round(value+offset*step, 4) for offset in range(-10, 11)]
-                        # Incloc també els decimals rodons: per exemple 5,9 i 6,0.
-                        values += [round(value, 1), round(value-.1, 1), round(value+.1, 1)]
-                    elif dimension==4:
-                        width = .20 if pass_number==0 else .05
-                        values = [round(value*factor, 6) for factor in np.linspace(1-width, 1+width, 21)] if methods[2] else [0.]
-                    else:
-                        step = .05 if pass_number==0 else .01
-                        values = [round(value+offset*step, 4) for offset in range(-5, 6)] if methods[3] else [0.]
-                    candidates = [best]
-                    for value in sorted(set(values)):
-                        c = list(best); c[dimension] = value
-                        if c[3] > 0 and 0 <= c[4] <= 1 and 0 <= c[5] < c[3] and (not methods[3] or c[5] > 0):
-                            candidates.append(tuple(c))
-                    for c in candidates:
-                        refinement_rows.append(dict(zip(METHODS, methods), passada=pass_number+1,
-                                                    parametre=PARAMS[dimension],
-                                                    **dict(zip(PARAMS[:6], c[:6])), total=evaluate(c)[0]))
-                    best = max(candidates, key=lambda c: evaluate(c)[0])
-                # Provo també marge i alfa junts per no dependre només d'un valor cada vegada.
-                if methods[2]:
-                    center = best
-                    candidates = [best]
-                    for delta, factor in itertools.product((-.10, -.05, 0, .05, .10), (.9, .95, 1., 1.05, 1.1)):
-                        c = list(center)
-                        c[3], c[4] = round(center[3]+delta, 4), round(center[4]*factor, 6)
-                        if 0 < c[3] and c[5] < c[3] and 0 <= c[4] <= 1:
-                            candidates.append(tuple(c))
-                    for c in candidates:
-                        refinement_rows.append(dict(zip(METHODS, methods), passada=pass_number+1,
-                                                    parametre='marge_i_alfa',
-                                                    **dict(zip(PARAMS[:6], c[:6])), total=evaluate(c)[0]))
-                    best = max(candidates, key=lambda c: evaluate(c)[0])
-                if best == pass_start and pass_number >= 1:
-                    break
-            assert evaluate(best)[0] >= evaluate(before_fine)[0]
+                fixed_rows.append(dict(zip(METHODS, methods), perfil=name,
+                                       **dict(zip(PARAMS[:6], config[:6])),
+                                       **dict(zip(METRICS, evaluate(config)))))
+            best, trace, limited = search(methods, evaluate)
+            limited_starts += limited
+            for step in trace:
+                search_rows.append(dict(zip(METHODS, methods), inici_cerca=step['inici_cerca'],
+                                        volta=step['volta'], accio=step['accio'],
+                                        **dict(zip(PARAMS[:6], step['config'][:6])),
+                                        **dict(zip(STEP_FIELDS, step['passos'])),
+                                        total=step['total']))
             best_configs.append((methods, best))
             best_rows.append(dict(zip(METHODS, methods), **dict(zip(PARAMS[:6], best[:6])),
                                   **dict(zip(METRICS, evaluate(best)))))
@@ -298,12 +212,13 @@ void evaluate(float *raw, float *dc, double *v, double *s, int *ends,
         fields = METHODS + PARAMS[:6] + METRICS
         write_csv(results/'combinacions_amb_valors_fixos.csv', METHODS+['perfil']+PARAMS[:6]+METRICS, fixed_rows)
         write_csv(results/'combinacions_ajustades.csv', fields, best_rows)
-        write_csv(results/'afinament_detall.csv', METHODS+['passada', 'parametre']+PARAMS[:6]+['total'], refinement_rows)
+        write_csv(results/'recorregut_cerca.csv', METHODS+['inici_cerca', 'volta', 'accio']+PARAMS[:6]+STEP_FIELDS+['total'], search_rows)
         write_csv(results/'canvis_per_parelles.csv', ['perfil', 'metode', 'abans', 'despres', 'total_sense', 'total_amb', 'diferencia'], paired_effects(fixed_rows))
         best_configs.sort(key=lambda item: evaluate(item[1])[0], reverse=True)
         winner = best_configs[0][1]
         summary = {'metodes': METHODS, 'grups': len(best_configs), 'proves_diferents': len(cache),
-                   'punts_afinament': len(refinement_rows), 'passades_fines_maximes': 3,
+                   'voltes_cerca': len(search_rows), 'inicis_aturats_per_limit': limited_starts,
+                   'cerca': 'tres inicis generics, moviment segons TOTAL i reduccio del pas',
                    'millor_configuracio': dict(zip(PARAMS, winner)),
                    'millor_resultat': dict(zip(METRICS, evaluate(winner))),
                    'arguments': arguments(winner)}

@@ -17,7 +17,7 @@ def actualitza():
                  for row in csv.DictReader(stream) if row['perfil'] == 'base_actual'}
     with (folder/'combinacions_ajustades.csv').open() as stream:
         adjusted = {tuple(int(row[key]) for key in METHODS): row for row in csv.DictReader(stream)}
-    with (folder/'combinacions_abans_afinament.csv').open() as stream:
+    with (folder/'combinacions_afinament_anterior.csv').open() as stream:
         previous = {tuple(int(row[key]) for key in METHODS): row for row in csv.DictReader(stream)}
     combinations = list(itertools.product((0, 1), repeat=8))
     if any(set(table) != set(combinations) for table in (fixed, adjusted, previous)):
@@ -32,19 +32,19 @@ def actualitza():
              '**Hist.** són els dos llindars; **Pic** deixa fora el pic inicial; '
              '**Baix.** permet una baixada; **DC** treu la mitjana; **Ret.** torna al primer bloc pendent.', '',
              '**Fix** és el TOTAL amb els valors de la base actual. Si activo la histèresi, separo els llindars 1 dB. '
-             '**Ajust curt** és el resultat de la primera cerca. **Ajust fi** és el millor TOTAL trobat després de provar valors més propers. '
+             '**Anterior** és el millor resultat de la cerca anterior. **Adaptativa** és el resultat de la cerca nova, que mou el centre i redueix el pas segons les puntuacions. '
              'Per tant, les columnes ajustades poden fer servir paràmetres diferents a cada fila. '
              'Els tres resultats són sobre les 115 gravacions de `db.v4`.', '',
-             f'La **C{base_number:03d}** és la combinació de la base actual. El millor ajust és a '+', '.join(best_codes)+'. '
+             f'La **C{base_number:03d}** és la combinació de la base actual. La millor cerca adaptativa és a '+', '.join(best_codes)+'. '
              'El número identifica els vuit interruptors en l’ordre de les columnes; les files van de C000 a C255.', '',
-             '| Combinació | Veu | Sil. | Sor. | Hist. | Pic | Baix. | DC | Ret. | Fix (%) | Ajust curt (%) | Ajust fi (%) |',
+             '| Combinació | Veu | Sil. | Sor. | Hist. | Pic | Baix. | DC | Ret. | Fix (%) | Anterior (%) | Adaptativa (%) |',
              '|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---:|---:|---:|']
     for number, switches in enumerate(combinations):
         label = f'C{number:03d}'
         if number == base_number:
             label = f'**C{number:03d} · base**'
         elif abs(float(adjusted[switches]['total'])-best) < 1e-9:
-            label = f'**C{number:03d} · millor ajust**'
+            label = f'**C{number:03d} · millor cerca**'
         score_fixed = f"{float(fixed[switches]['total']):.3f}".replace('.', ',')
         score_previous = f"{float(previous[switches]['total']):.3f}".replace('.', ',')
         score_adjusted = f"{float(adjusted[switches]['total']):.3f}".replace('.', ',')
