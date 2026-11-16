@@ -2,10 +2,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>  // Comprovo els errors de conversió del marge.
+#include <limits.h>
 #include <math.h>  // Comprovo que el marge sigui un nombre finit.
 #include <sndfile.h>  // Llegeixo les mostres amb libsndfile.
 #include "vad.h"
 #include "vad_docopt.h"  // Aprofito el lector d'arguments que ja venia amb la pràctica.
+
+// Llegeixo els valors de les proves i rebutjo nombres mal escrits.
+static int read_frames(const char *text, int *value) {
+    char *end;
+    errno = 0;
+    long number = strtol(text, &end, 10);
+    if (end == text || *end != '\0' || errno || number < 1 || number > INT_MAX) return 0;
+    *value = (int) number;
+    return 1;
+}
+
+static int read_number(const char *text, float *value) {
+    char *end;
+    errno = 0;
+    *value = strtof(text, &end);
+    return end != text && *end == '\0' && !errno && isfinite(*value);
+}
 
 int main(int argc, char *argv[]) {
     DocoptArgs args = docopt(argc, argv, 1, "2.0");  // Llegeixo els noms dels fitxers i l'opció verbose.
@@ -15,6 +33,15 @@ int main(int argc, char *argv[]) {
     if (number_end == args.llindar || *number_end != '\0' || errno != 0 || !isfinite(margin) || margin <= 0) {  // Rebutjo valors invàlids.
         fprintf(stderr, "El llindar ha de ser un marge positiu en dB.\n");  // Explico el valor que necessito.
         return 1;  // Aturo el programa abans de tocar els fitxers.
+    }
+    int init_frames, min_voice, min_silence;
+    float alpha, gap;
+    if (!read_frames(args.inici, &init_frames) || !read_frames(args.veu, &min_voice) ||
+        !read_frames(args.silenci, &min_silence) || !read_number(args.alfa, &alpha) ||
+        !read_number(args.histeresi, &gap) || alpha < 0 || alpha > 1 || gap < 0 || gap >= margin ||
+        (args.treu_pic && init_frames < 2)) {
+        fprintf(stderr, "Calen blocs positius, alfa entre 0 i 1 i una histèresi menor que el marge.\n");
+        return 1;
     }
     if (args.input_wav == NULL || args.output_vad == NULL) {  // Comprovo els dos arguments obligatoris.
         fprintf(stderr, "%s\n", args.usage_pattern);  // Mostro la forma d'executar el programa.
@@ -44,6 +71,15 @@ int main(int argc, char *argv[]) {
         return 1;  // Aturo l'execució.
     }
     unsigned int frame_size = vad_frame_size(data);  // Consulto quantes mostres necessita cada bloc.
+    data->init_frames = init_frames;
+    data->min_voice = min_voice;
+    data->min_silence = min_silence;
+    data->noise_alpha = alpha;
+    data->silence_gap = gap;
+    data->trim_initial = args.treu_pic;
+    data->allow_dip = args.permet_baixada;
+    data->remove_dc = args.treu_dc;
+    data->backdate = !args.sense_retroces;
     data->margin_db = margin;  // Aplico el marge rebut per argument.
     float *buffer = malloc(frame_size * sizeof(float));  // Reservo només la memòria d'un bloc.
     if (buffer == NULL) {  // Comprovo la reserva.
@@ -75,7 +111,7 @@ int main(int argc, char *argv[]) {
         if (state == ST_UNDEF) {  // Espero una decisió quan l'estat és provisional.
             pending++;  // Recordo quants blocs hauré d'assignar després.
         } else {
-            unsigned int start = t - pending;  // Retrocedeixo fins al primer bloc pendent.
+            unsigned int start = data->backdate ? t - pending : t;  // Retrocedeixo fins al primer bloc pendent.
             if (last_state == ST_UNDEF) {  // Resolc el primer segment del fitxer.
                 last_state = state;  // Guardo la primera etiqueta S o V.
             } else if (state != last_state) {  // Tanco el segment quan es confirma un canvi.

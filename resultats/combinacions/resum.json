@@ -1,0 +1,42 @@
+{
+  "metodes": [
+    "veu_minima",
+    "silenci_minim",
+    "seguiment_soroll",
+    "histeresi",
+    "treu_pic",
+    "baixada",
+    "treu_dc",
+    "retroces"
+  ],
+  "grups": 256,
+  "proves_diferents": 11201,
+  "millor_configuracio": {
+    "inici": 9,
+    "veu": 8,
+    "silenci": 17,
+    "marge": 6.63,
+    "alfa": 0.00615,
+    "diferencia": 0.0,
+    "treu_pic": 0,
+    "baixada": 0,
+    "treu_dc": 1,
+    "retroces": 1
+  },
+  "millor_resultat": {
+    "total": 95.83098441966999,
+    "recall_v": 97.7849652608248,
+    "precision_v": 93.44082074453837,
+    "recall_s": 89.28702395178047,
+    "precision_s": 96.27248360256958
+  },
+  "arguments": [
+    "--inici=9",
+    "--veu=8",
+    "--silenci=17",
+    "-l6.63",
+    "--alfa=0.00615",
+    "--histeresi=0",
+    "--treu-dc"
+  ]
+}

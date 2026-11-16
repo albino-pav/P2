@@ -43,3 +43,16 @@ float compute_zcr(const float *x, unsigned int N, float fm) {
 
     return fm * creuaments / (2.0f * (N - 1));  // Normalitzo segons la fórmula de l'enunciat.
 }
+
+// Calculo la potència després de treure el valor mitjà del bloc.
+float compute_power_centered(const float *x, unsigned int N) {
+    if (N == 0) return 0.0f;
+    float mean = 0.0f, sum = 0.0f;
+    for (unsigned int i = 0; i < N; i++) mean += x[i];
+    mean /= N;
+    for (unsigned int i = 0; i < N; i++) {
+        float sample = x[i] - mean;
+        sum += sample * sample;
+    }
+    return 10.0f * log10(sum / N);
+}

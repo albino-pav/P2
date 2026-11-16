@@ -13,12 +13,21 @@
 typedef struct {
     /* options without arguments */
     int help;
+    int permet_baixada;
+    int sense_retroces;
+    int treu_dc;
+    int treu_pic;
     int verbose;
     int version;
     /* options with arguments */
+    char *alfa;
+    char *histeresi;
+    char *inici;
     char *input_wav;
     char *llindar;
     char *output_vad;
+    char *silenci;
+    char *veu;
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -36,6 +45,15 @@ const char help_message[] =
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
 "   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 5.94]\n"
+"   --inici=N  Blocs de 10 ms per calcular el soroll inicial [default: 9]\n"
+"   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 8]\n"
+"   --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 17]\n"
+"   --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.00615]\n"
+"   --histeresi=DB  Diferencia entre entrada i sortida de veu [default: 0]\n"
+"   --treu-pic  Deixa fora el bloc inicial mes fort\n"
+"   --permet-baixada  Permet un bloc baix mentre confirma veu\n"
+"   --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia\n"
+"   --sense-retroces  Posa el canvi quan el confirma, sense tornar enrere\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -268,10 +286,27 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             return 1;
         } else if (!strcmp(option->olong, "--help")) {
             args->help = option->value;
+        } else if (!strcmp(option->olong, "--permet-baixada")) {
+            args->permet_baixada = option->value;
+        } else if (!strcmp(option->olong, "--sense-retroces")) {
+            args->sense_retroces = option->value;
+        } else if (!strcmp(option->olong, "--treu-dc")) {
+            args->treu_dc = option->value;
+        } else if (!strcmp(option->olong, "--treu-pic")) {
+            args->treu_pic = option->value;
         } else if (!strcmp(option->olong, "--verbose")) {
             args->verbose = option->value;
         } else if (!strcmp(option->olong, "--version")) {
             args->version = option->value;
+        } else if (!strcmp(option->olong, "--alfa")) {
+            if (option->argument)
+                args->alfa = option->argument;
+        } else if (!strcmp(option->olong, "--histeresi")) {
+            if (option->argument)
+                args->histeresi = option->argument;
+        } else if (!strcmp(option->olong, "--inici")) {
+            if (option->argument)
+                args->inici = option->argument;
         } else if (!strcmp(option->olong, "--input-wav")) {
             if (option->argument)
                 args->input_wav = option->argument;
@@ -281,6 +316,12 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--output-vad")) {
             if (option->argument)
                 args->output_vad = option->argument;
+        } else if (!strcmp(option->olong, "--silenci")) {
+            if (option->argument)
+                args->silenci = option->argument;
+        } else if (!strcmp(option->olong, "--veu")) {
+            if (option->argument)
+                args->veu = option->argument;
         }
     }
     /* commands */
@@ -301,7 +342,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, NULL, (char*) "5.94", NULL,
+        0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "0", (char*) "9", NULL,
+        (char*) "5.94", NULL, (char*) "17", (char*) "8",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -311,13 +353,22 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     };
     Option options[] = {
         {"-h", "--help", 0, 0, NULL},
+        {NULL, "--permet-baixada", 0, 0, NULL},
+        {NULL, "--sense-retroces", 0, 0, NULL},
+        {NULL, "--treu-dc", 0, 0, NULL},
+        {NULL, "--treu-pic", 0, 0, NULL},
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
+        {NULL, "--alfa", 1, 0, NULL},
+        {NULL, "--histeresi", 1, 0, NULL},
+        {NULL, "--inici", 1, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
         {"-l", "--llindar", 1, 0, NULL},
-        {"-o", "--output-vad", 1, 0, NULL}
+        {"-o", "--output-vad", 1, 0, NULL},
+        {NULL, "--silenci", 1, 0, NULL},
+        {NULL, "--veu", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 6, commands, arguments, options};
+    Elements elements = {0, 0, 15, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

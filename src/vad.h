@@ -10,9 +10,20 @@ typedef struct {
     float sampling_rate;  // Guardo la freqüència de mostreig.
     unsigned int frame_length;  // Guardo les mostres de cada bloc de 10 ms.
     int initial_frames;  // Compto els blocs que uso per estimar el soroll inicial.
+    float initial_max;  // Guardo el màxim inicial si vull deixar-lo fora.
     float initial_sum;  // Acumulo la potència lineal dels blocs inicials.
     float noise;  // Guardo la potència estimada del soroll en dB.
     float margin_db;  // Guardo el marge que he rebut per argument.
+    int init_frames;  // Nombre de blocs per calcular el soroll inicial.
+    int min_voice;  // Blocs alts que demano per confirmar veu.
+    int min_silence;  // Blocs baixos que demano per confirmar silenci.
+    float noise_alpha;  // Quant canvia el soroll a cada bloc de silenci.
+    float silence_gap;  // Diferència entre el llindar d’entrada i el de sortida.
+    int trim_initial;  // Deixo fora el bloc inicial més fort.
+    int allow_dip;  // Permeto una baixada mentre confirmo veu.
+    int remove_dc;  // Resto la mitjana abans de calcular la potència.
+    int backdate;  // Torno al primer bloc pendent quan confirmo un canvi.
+    int voice_dips;  // Baixades que ja he permès en aquest intent.
     int count;  // Compto els blocs consecutius d'un estat provisional.
     float last_feature;  // Guardo la potència actual per a --verbose.
 } VAD_DATA;
