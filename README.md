@@ -152,14 +152,14 @@ Ejercicios
 ![Etiquetado manual en WaveSurfer](captura_411.png)
 - A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
 
-* Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
+  * Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
     estar seguros de que un segmento de señal se corresponde con voz.
 
     > A partir de la gráfica de potencia, hemos considerado que cualquier segmento cuya potencia supere los 40 dB ya se puede catalogar con seguridad como voz. Dado que el nivel de ruido de fondo en el silencio inicial se sitúa en torno a los 20 - 25 dB, esto supone un incremento de potencia de entre 15 y 20 dB respecto al nivel de silencio inicial.
   
   * Duración mínima razonable de los segmentos de voz y silencio.
 
-    > Consideramos que una duración mínima razonable tanto para los segmentos de voz como para los de silencio se sitúa en un intervalo de 200 - 300 ms. Este margen permite descartar ruidos impulsivos muy breves para no confundirlos con voz y, al mismo tiempo, evita que las pausas cortas propias de la pronunciación (como las oclusiones de consonantes) fragmenten una palabra en varios segmentos.
+    > Consideramos que una duración mínima razonable tanto para los segmentos de voz como para los de silencio se sitúa en un intervalo de 200 - 300 ms. Este margen permite descartar ruidos muy breves para no confundirlos con voz y, al mismo tiempo, evita que las pausas cortas propias de la pronunciación, como las oclusiones de consonantes fragmenten una palabra en varios segmentos.
 
   * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
 
