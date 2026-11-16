@@ -9,6 +9,11 @@ Options:
    -i FILE, --input-wav=FILE   WAVE file for voice activity detection
    -o FILE, --output-vad=FILE  Label file with the result of VAD
    -w FILE, --output-wav=FILE  WAVE file with silences cleared
+   -l REAL, --llindar=REAL     Umbral principal alpha1 en dB [default: 5.5]
+   -2 REAL, --alpha2=REAL      Margen adicional alpha2 en dB [default: 2.5]
+   -m INT, --min-voice=INT     Duracion minima de voz en tramas [default: 8]
+   -s INT, --min-silence=INT   Duracion minima de silencio en tramas [default: 21]
+   -n INT, --n-init=INT        Tramas iniciales para estimar ruido [default: 10]
    -v, --verbose  Show debug information
    -h, --help     Show this screen
    --version      Show the version of the project
