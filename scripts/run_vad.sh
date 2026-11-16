@@ -7,7 +7,7 @@ set -o pipefail
 DIR_P2="$(cd "$(dirname "$0")/.." && pwd)"
 DB="$DIR_P2/db.v4"
 CMD="$DIR_P2/bin/vad"
-llindar="${1:-6}" # Faig servir el primer argument o el valor per defecte de 6 dB.
+llindar="${1:-5.94}" # Faig servir el primer argument o el valor per defecte de 5,94 dB.
 if [[ $# -gt 1 || ! "$llindar" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     echo "Ús: $0 [marge_en_dB]" >&2 # Indico com passar el marge.
     exit 1

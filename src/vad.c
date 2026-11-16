@@ -3,11 +3,11 @@
 #include "vad.h"
 #include "pav_analysis.h"  // Reutilitzo el càlcul de potència de P1.
 
-const int INIT_FRAMES = 10;  // Estimo el soroll amb els primers 100 ms.
+const int INIT_FRAMES = 9;  // Estimo el soroll amb els primers 90 ms.
 const int MIN_VOICE = 8;  // Exigeixo 80 ms seguits per confirmar la veu.
-const int MIN_SILENCE = 15;  // Exigeixo 150 ms seguits per confirmar el silenci.
-const float MARGIN_DB = 6.0f;  // Demano 6 dB més que el soroll per detectar veu.
-const float NOISE_ALPHA = 0.02f;  // Actualitzo lentament la referència durant el silenci.
+const int MIN_SILENCE = 17;  // Exigeixo 170 ms seguits per confirmar el silenci.
+const float MARGIN_DB = 5.94f;  // Demano 5,94 dB més que el soroll per detectar veu.
+const float NOISE_ALPHA = 0.00615f;  // Actualitzo lentament la referència durant el silenci.
 
 const char *state2str(VAD_STATE state) {
     const char *names[] = {"UNDEF", "S", "V", "INIT", "MAYBE_V", "MAYBE_S"};  // Assigno un nom a cada estat.
@@ -24,7 +24,7 @@ VAD_DATA *vad_open(float rate) {
     data->initial_frames = 0;  // Encara no he llegit cap bloc inicial.
     data->initial_sum = 0.0f;  // Inicialitzo la suma de potències.
     data->noise = -100.0f;  // Preparo un valor finit per al silenci absolut.
-    data->margin_db = MARGIN_DB;  // Faig servir 6 dB si no rebo un altre marge.
+    data->margin_db = MARGIN_DB;  // Faig servir 5,94 dB si no rebo un altre marge.
     data->count = 0;  // Encara no tinc blocs provisionals.
     data->last_feature = -100.0f;  // Inicialitzo el valor que mostraré amb --verbose.
     return data;  // Retorno el detector preparat.

@@ -77,7 +77,7 @@ primer_silenci = int(manual[0][1] * fm)  # Localitzo les mostres del silenci ini
 mesures = {  # Recullo les mesures de la gravació personal.
     'durada': len(x) / fm,  # Deso la durada real.
     'soroll_inicial_db': float(10 * np.log10(np.mean(x[:primer_silenci] ** 2))),  # Mesuro el silenci inicial complet.
-    'referencia_100ms_db': float(10 * np.log10(np.mean(x[:int(0.1 * fm)] ** 2))),  # Mesuro el període d'inicialització del detector.
+    'referencia_90ms_db': float(10 * np.log10(np.mean(x[:int(0.09 * fm)] ** 2))),  # Mesuro el període d'inicialització del detector.
     'zcr_silenci_mitja': float(np.mean(zcr[temps < manual[0][1]])),  # Resumeixo els creuaments al silenci inicial.
     'zcr_maxim': float(np.max(zcr))  # Deso el màxim observat.
 }

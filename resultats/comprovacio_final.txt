@@ -1,0 +1,25 @@
+OK: execució a 8000 Hz
+OK: 8000 Hz: clic curt rebutjat, pausa curta conservada i límits retroactius
+OK: 8000 Hz: silenci de 0.005 s, inclòs bloc incomplet
+OK: 8000 Hz: silenci de 0.04 s, inclòs bloc incomplet
+OK: 8000 Hz: silenci de 0.2 s, inclòs bloc incomplet
+OK: execució a 16000 Hz
+OK: 16000 Hz: clic curt rebutjat, pausa curta conservada i límits retroactius
+OK: 16000 Hz: silenci de 0.005 s, inclòs bloc incomplet
+OK: 16000 Hz: silenci de 0.04 s, inclòs bloc incomplet
+OK: 16000 Hz: silenci de 0.2 s, inclòs bloc incomplet
+OK: execució a 48000 Hz
+OK: 48000 Hz: clic curt rebutjat, pausa curta conservada i límits retroactius
+OK: 48000 Hz: silenci de 0.005 s, inclòs bloc incomplet
+OK: 48000 Hz: silenci de 0.04 s, inclòs bloc incomplet
+OK: 48000 Hz: silenci de 0.2 s, inclòs bloc incomplet
+OK: marge invàlid rebutjat: 0
+OK: marge invàlid rebutjat: -1
+OK: marge invàlid rebutjat: nan
+OK: marge invàlid rebutjat: inf
+OK: marge invàlid rebutjat: abc
+OK: marge invàlid rebutjat: 1x
+OK: entrada inexistent rebutjada
+OK: estèreo rebutjat
+OK: sortida inaccessible rebutjada
+OK: 115 fitxers: compilació neta idèntica al binari avaluat; opcions per defecte idèntiques a -l 5.94; etiquetes S/V contínues fins a la durada real
