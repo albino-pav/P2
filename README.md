@@ -4,7 +4,7 @@ Jordi Albareda Fortuny · Grup 41 · Lloc XX
 
 Aquesta branca és `jordi-albareda-combinacions`. Aquí provo les idees antigues i les noves, juntes i per separat. La versió d’entrega continua a `jordi-albareda`.
 
-Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](IDEES.md).
+Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](IDEES.md). També hi ha la [matriu de les 256 combinacions](IDEES.md#matriu-de-totes-les-combinacions).
 
 ## Què he provat
 
@@ -69,6 +69,12 @@ python3 scripts/comprova_metodes.py
 ```
 
 Si `db.v4` és dins de P2, no cal passar el camí. La primera ordre calcula les combinacions i comprova 26 configuracions amb el programa normal i el Perl. La segona comprova casos petits a 8, 16 i 48 kHz.
+
+Per tornar a posar la matriu a `IDEES.md` a partir dels CSV, sense repetir les proves:
+
+```sh
+python3 scripts/actualitza_matriu.py
+```
 
 ## Fitxers de resultats
 

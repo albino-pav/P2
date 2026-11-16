@@ -286,3 +286,5 @@ if __name__ == '__main__':
     parser.add_argument('--verifica', action='store_true', help='Comprova també amb el binari i el Perl originals')
     args = parser.parse_args()
     run(args.database.resolve(), args.verifica)
+    from actualitza_matriu import actualitza
+    actualitza()
