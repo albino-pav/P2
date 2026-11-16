@@ -183,6 +183,12 @@ void evaluate(float *raw, float *dc, double *v, double *s, int *ends,
                 config[index] = 1
             assert round(evaluate(config)[0], 3) == known, (config, evaluate(config))
         fixed_rows, best_rows, best_configs = [], [], []
+        previous_path = results/'combinacions_abans_afinament.csv'
+        previous = {}
+        if previous_path.exists():
+            with previous_path.open() as stream:
+                previous = {tuple(int(row[key]) for key in METHODS): row for row in csv.DictReader(stream)}
+        refinement_rows = []
         for number, methods in enumerate(itertools.product((0, 1), repeat=len(METHODS))):
             choices = []
             for name, profile in PROFILES.items():
@@ -228,6 +234,60 @@ void evaluate(float *raw, float *dc, double *v, double *s, int *ends,
                     if c[5] < c[3]:
                         candidates.append(tuple(c))
                 best = max(candidates, key=lambda c: evaluate(c)[0])
+            # Parteixo també del millor resultat de l'estudi anterior, si el tinc.
+            if methods in previous:
+                old = previous[methods]
+                prior = tuple(float(old[key]) for key in PARAMS[:6]) + tuple(methods[4:])
+                best = max([best, prior], key=lambda c: evaluate(c)[0])
+            before_fine = best
+            # Miro els voltants amb passos petits i repeteixo després de moure el centre.
+            for pass_number in range(3):
+                pass_start = best
+                for dimension in (0, 1, 2, 3, 4, 5):
+                    value = best[dimension]
+                    if dimension in (0, 1, 2):
+                        values = range(max(2 if dimension==0 or methods[dimension-1] else 1,
+                                           int(value)-2), int(value)+3)
+                        if dimension in (1, 2) and not methods[dimension-1]:
+                            values = [1]
+                    elif dimension==3:
+                        step = .02 if pass_number==0 else .01
+                        values = [round(value+offset*step, 4) for offset in range(-10, 11)]
+                        # Incloc també els decimals rodons: per exemple 5,9 i 6,0.
+                        values += [round(value, 1), round(value-.1, 1), round(value+.1, 1)]
+                    elif dimension==4:
+                        width = .20 if pass_number==0 else .05
+                        values = [round(value*factor, 6) for factor in np.linspace(1-width, 1+width, 21)] if methods[2] else [0.]
+                    else:
+                        step = .05 if pass_number==0 else .01
+                        values = [round(value+offset*step, 4) for offset in range(-5, 6)] if methods[3] else [0.]
+                    candidates = [best]
+                    for value in sorted(set(values)):
+                        c = list(best); c[dimension] = value
+                        if c[3] > 0 and 0 <= c[4] <= 1 and 0 <= c[5] < c[3] and (not methods[3] or c[5] > 0):
+                            candidates.append(tuple(c))
+                    for c in candidates:
+                        refinement_rows.append(dict(zip(METHODS, methods), passada=pass_number+1,
+                                                    parametre=PARAMS[dimension],
+                                                    **dict(zip(PARAMS[:6], c[:6])), total=evaluate(c)[0]))
+                    best = max(candidates, key=lambda c: evaluate(c)[0])
+                # Provo també marge i alfa junts per no dependre només d'un valor cada vegada.
+                if methods[2]:
+                    center = best
+                    candidates = [best]
+                    for delta, factor in itertools.product((-.10, -.05, 0, .05, .10), (.9, .95, 1., 1.05, 1.1)):
+                        c = list(center)
+                        c[3], c[4] = round(center[3]+delta, 4), round(center[4]*factor, 6)
+                        if 0 < c[3] and c[5] < c[3] and 0 <= c[4] <= 1:
+                            candidates.append(tuple(c))
+                    for c in candidates:
+                        refinement_rows.append(dict(zip(METHODS, methods), passada=pass_number+1,
+                                                    parametre='marge_i_alfa',
+                                                    **dict(zip(PARAMS[:6], c[:6])), total=evaluate(c)[0]))
+                    best = max(candidates, key=lambda c: evaluate(c)[0])
+                if best == pass_start and pass_number >= 1:
+                    break
+            assert evaluate(best)[0] >= evaluate(before_fine)[0]
             best_configs.append((methods, best))
             best_rows.append(dict(zip(METHODS, methods), **dict(zip(PARAMS[:6], best[:6])),
                                   **dict(zip(METRICS, evaluate(best)))))
@@ -238,10 +298,12 @@ void evaluate(float *raw, float *dc, double *v, double *s, int *ends,
         fields = METHODS + PARAMS[:6] + METRICS
         write_csv(results/'combinacions_amb_valors_fixos.csv', METHODS+['perfil']+PARAMS[:6]+METRICS, fixed_rows)
         write_csv(results/'combinacions_ajustades.csv', fields, best_rows)
+        write_csv(results/'afinament_detall.csv', METHODS+['passada', 'parametre']+PARAMS[:6]+['total'], refinement_rows)
         write_csv(results/'canvis_per_parelles.csv', ['perfil', 'metode', 'abans', 'despres', 'total_sense', 'total_amb', 'diferencia'], paired_effects(fixed_rows))
         best_configs.sort(key=lambda item: evaluate(item[1])[0], reverse=True)
         winner = best_configs[0][1]
         summary = {'metodes': METHODS, 'grups': len(best_configs), 'proves_diferents': len(cache),
+                   'punts_afinament': len(refinement_rows), 'passades_fines_maximes': 3,
                    'millor_configuracio': dict(zip(PARAMS, winner)),
                    'millor_resultat': dict(zip(METRICS, evaluate(winner))),
                    'arguments': arguments(winner)}

@@ -19,7 +19,7 @@ Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](ID
 
 També canvio el temps inicial, el marge, les duracions mínimes, alfa i la diferència entre llindars.
 
-Hi ha 256 combinacions d’interruptors. Les provo amb quatre grups de valors i després faig un ajust curt per a cadascuna. No he fet totes les combinacions de tots els nombres possibles.
+Hi ha 256 combinacions d’interruptors. Les provo amb quatre grups de valors i després faig un ajust curt i una cerca més fina per a cadascuna. No he fet totes les combinacions de tots els nombres possibles.
 
 ## Resultat
 
@@ -27,11 +27,12 @@ Hi ha 256 combinacions d’interruptors. Les provo amb quatre grups de valors i 
 |---|---:|
 | Base actual, també per defecte en aquesta branca | 95,829 % |
 | Totes les idees activades amb els mateixos valors | 95,223 % |
-| Millor combinació trobada en aquesta prova | **95,831 %** |
+| Millor amb l’ajust curt anterior | 95,831 % |
+| Millor després d’afinar | **95,871 %** |
 
-La millor combinació manté les esperes, el seguiment del soroll i el retorn al primer bloc pendent. També treu la mitjana. No hi ha histèresi, ni s’elimina el pic inicial, ni es permet una baixada.
+La millor combinació manté les esperes, el seguiment del soroll i el retorn al primer bloc pendent. També activa histèresi i permet una baixada. No treu el pic inicial ni la mitjana.
 
-La diferència respecte de la base és molt petita: uns 0,002 punts. Mantinc la base d’entrega i guardo aquesta prova separada.
+L’afinament puja de 95,831 % a 95,871 %. Són uns 0,042 punts més que la base d’entrega. Guardo aquesta prova separada; els valors per defecte continuen sent els de la base.
 
 ## Compilar i executar
 
@@ -46,7 +47,7 @@ bin/vad -i pav_41XX1.wav -o prova.vad
 Sense opcions noves, el resultat continua sent el de la base. Per provar la millor configuració trobada:
 
 ```sh
-bin/vad -i pav_41XX1.wav -o prova.vad --treu-dc -l 6.63
+bin/vad -i pav_41XX1.wav -o prova.vad --silenci=16 -l 6.75 --alfa=0.005842 --histeresi=0.99 --permet-baixada
 ```
 
 Per provar les idees a mà:
@@ -76,11 +77,15 @@ Per tornar a posar la matriu a `IDEES.md` a partir dels CSV, sense repetir les p
 python3 scripts/actualitza_matriu.py
 ```
 
+La cerca fina inclou valors com 5,90 i 6,00 al voltant de 5,94 dB. També afina les duracions, alfa i la histèresi, i prova marge i alfa junts. En total són 45.163 configuracions diferents. El detall és a [IDEES.md](IDEES.md#afinar-al-voltant-del-millor-valor).
+
 ## Fitxers de resultats
 
 - [Combinacions amb valors fixos](resultats/combinacions/combinacions_amb_valors_fixos.csv).
 - [Parelles on només canvia una idea](resultats/combinacions/canvis_per_parelles.csv).
+- [Ajust anterior a l’afinament](resultats/combinacions/combinacions_abans_afinament.csv).
 - [Millor ajust trobat per a cada combinació](resultats/combinacions/combinacions_ajustades.csv).
+- [Valors provats durant l’afinament](resultats/combinacions/afinament_detall.csv).
 - [Verificació amb el programa normal i el Perl](resultats/combinacions/verificacio.csv).
 - [Avaluació completa del millor resultat](resultats/combinacions/avaluacio_millor.txt).
 - [Comprovacions amb àudios petits](resultats/combinacions/comprovacions.txt).

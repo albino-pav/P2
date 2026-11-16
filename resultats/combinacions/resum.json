@@ -10,33 +10,35 @@
     "retroces"
   ],
   "grups": 256,
-  "proves_diferents": 11201,
+  "proves_diferents": 45163,
+  "punts_afinament": 49583,
+  "passades_fines_maximes": 3,
   "millor_configuracio": {
     "inici": 9,
     "veu": 8,
-    "silenci": 17,
-    "marge": 6.63,
-    "alfa": 0.00615,
-    "diferencia": 0.0,
+    "silenci": 16,
+    "marge": 6.75,
+    "alfa": 0.005842,
+    "diferencia": 0.99,
     "treu_pic": 0,
-    "baixada": 0,
-    "treu_dc": 1,
+    "baixada": 1,
+    "treu_dc": 0,
     "retroces": 1
   },
   "millor_resultat": {
-    "total": 95.83098441966999,
-    "recall_v": 97.7849652608248,
-    "precision_v": 93.44082074453837,
-    "recall_s": 89.28702395178047,
-    "precision_s": 96.27248360256958
+    "total": 95.87138255212653,
+    "recall_v": 98.09126825082079,
+    "precision_v": 92.64312464108656,
+    "recall_s": 87.84273884016908,
+    "precision_s": 96.71995130498931
   },
   "arguments": [
     "--inici=9",
     "--veu=8",
-    "--silenci=17",
-    "-l6.63",
-    "--alfa=0.00615",
-    "--histeresi=0",
-    "--treu-dc"
+    "--silenci=16",
+    "-l6.75",
+    "--alfa=0.005842",
+    "--histeresi=0.99",
+    "--permet-baixada"
   ]
 }
