@@ -22,7 +22,7 @@ typedef struct {
 /* Call this function before using VAD: 
    It should return allocated and initialized values of vad_data
 
-   sampling_rate: ... the sampling rate */
+   sampling_rate: ... the sampling rate */ 
 VAD_DATA *vad_open(float sampling_rate);
 
 /* vad works frame by frame.
