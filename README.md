@@ -154,28 +154,28 @@ Ejercicios
 
 ![Etiquetado manual en WaveSurfer](img/grafica_classificacio.png)
 
-> **Respuesta:** En la captura se muestran los cuatro paneles sincronizados de la grabación `pav_4061.wav` ($f_s = 16\text{ kHz}$, duración total de $22{,}315\text{ s}$)[cite: 2]: la tasa de cruces por cero (ZCR), el contorno de potencia en decibelios (de $-20\text{ dB}$ a $70\text{ dB}$), la transcripción manual con las etiquetas `S` (silencio) y `V` (voz), y la forma de onda temporal
+> **Respuesta:** En la captura se muestran los cuatro paneles sincronizados de la grabación `pav_4061.wav` ($f_s = 16\text{ kHz}$, duración total de $22\text{ s}$): la tasa de cruces por cero (ZCR), el contorno de potencia en decibelios (de $-20\text{ dB}$ a $70\text{ dB}$), la transcripción manual con las etiquetas `S` (silencio) y `V` (voz), y la forma de onda temporal
 
 - A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
 
   * Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para estar seguros de que un segmento de señal se corresponde con voz.
 
 
-> **Respuesta:** En la gráfica se observa que durante el silencio inicial y las pausas entre frases, el suelo de ruido se mantiene entre **$-20\text{ dB}$ y $-10\text{ dB}$**, con alguna fluctuación puntual previa al habla en torno a $20\text{--}30\text{ dB}$. Durante los segmentos de voz (`V`), la potencia sube hasta **$40\text{--}65\text{ dB}$** en las vocales y se sitúa en **$15\text{--}30\text{ dB}$** en consonantes débiles. Por tanto, es adecuado fijar un incremento de umbral de entre **$10\text{ dB}$ y $15\text{ dB}$** respecto al silencio inicial para detectar voz con seguridad sin disparar falsas alarmas por ruido de fondo
+> **Respuesta:** En la gráfica observamos que durante el silencio inicial y las pausas entre frases, el ruido se mantiene entre **$-25\text{ dB}$ y $-10\text{ dB}$** En cambio, durante los segmentos de voz (`V`), la potencia sube con valores de alrededor de **$40\text{--}65\text{ dB}$** en las vocales. Vemos algunos puntos concretos donde está en **$30\text{ dB}$** y lo podemos asociar a algunas consonantes débiles.Por tanto, fijar un incremento relativo de **$10\text{--}15\text{ dB}$** respecto al nivel de silencio inicial (nos daría el corte efectivo alrededor de $-8\text{ dB}$) ofrece el compromiso óptimo, es decir, es lo bastante alto para evitar falsas detecciones por pequeñas fluctuaciones del ruido de fondo, y lo bastante bajo para no recortar las consonantes débiles.
 
   * Duración mínima razonable de los segmentos de voz y silencio.
 
 
 > **Respuesta:**
-> * **Segmentos de voz (`V`):** La palabra aislada más breve de la grabación (*"Hola"*) tiene una duración aproximada de **$280\text{ ms}$**. Para el detector por tramas ($10\text{ ms}$), es razonable exigir una confirmación mínima de **$30\text{--}50\text{ ms}$** ($3\text{--}5$ tramas) para filtrar ruidos sin recortar palabras cortas. 
-> * **Segmentos de silencio (`S`):** La pausa más corta etiquetada entre palabras (tras *"Hola"*) dura unos **$180\text{ ms}$**, mientras que las oclusiones internas de consonantes sordas (`/p/`, `/t/`, `/k/`) duran entre $50\text{ ms}$ y $100\text{ ms}$ y deben mantenerse dentro de `V`[cite: 1, 3]. Por ello, una duración mínima razonable para decir que es silencio es de **$150\text{--}200\text{ ms}$** ($15\text{--}20$ tramas)
+> * **Segmentos de voz (`V`):** La palabra aislada más breve de la grabación (*"Hola"*) tiene una duración aproximada de **$280\text{ ms}$**. Para el detector por tramas ($10\text{ ms}$),escogemos una duración mínima de **$30\text{--}50\text{ ms}$** ($3\text{--}5$ tramas) para filtrar ruidos sin recortar palabras cortas. 
+> * **Segmentos de silencio (`S`):** La pausa más corta etiquetada entre palabras (después de "Hola") dura unos **$180\text{ ms}$**, mientras que las oclusiones internas de consonantes sordas (`/p/`, `/t/`, `/k/`) duran entre $50\text{ ms}$ y $100\text{ ms}$ y deben mantenerse dentro de `V`. És por eso, que una duración mínima razonable para decir que es silencio es de **$150\text{--}200\text{ ms}$** ($15\text{--}20$ tramas). 
 
   * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
 
 > **Respuesta:** Sí, la ZCR permite diferenciar claramente la naturaleza de los sonidos dentro de la señal
-> * **Vocales y sonidos sonoros:** Presentan una potencia alta ($45\text{--}65\text{ dB}$) y una ZCR baja y estable, entre **$200\text{ Hz}$ y $1000\text{ Hz}$**, debido a la periodicidad de la voz.
+> * **Vocales y sonidos sonoros:** Presentan una potencia alta ($40\text{--}65\text{ dB}$) y una ZCR baja y estable, debido a la periodicidad de la voz.
 > * **Consonantes fricativas sordas (`/s/`, `/f/`):** En palabras como *"somos"*, *"características"*, *"fricativas"* o en la *"s"* final de *"silencios"*, la potencia cae respecto a las vocales ($15\text{--}35\text{ dB}$) pero la ZCR presenta picos muy elevados de **$2500\text{--}4500\text{ Hz}$**.
-> * **Silencios:** En silencio digital puro (como en $t = 6{,}418\text{ s}$) la ZCR cae a **$0\text{ Hz}$**, mientras que con ruido ambiente de baja energía oscila irregularmente ($200\text{--}1500\text{ Hz}$).
+> * **Silencios:** En silencio la ZCR cae a **$0\text{ Hz}$**, mientras que con ruido ambiente de baja energía oscila irregularmente ($200\text{--}1500\text{ Hz}$).
 > * Aunque la ZRC no puede usarse sola por el ruido de fondo, combinada con la potencia resulta muy útil para no recortar fricativas sordas al inicio o final de palabra cuya energía cae cerca del umbral
 
 ### Desarrollo del detector de actividad vocal
