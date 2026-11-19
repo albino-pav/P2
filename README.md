@@ -186,7 +186,7 @@ Ejercicios
 
 ![Detección automática frente a etiquetado manual](img/grafica_vad.png)
 
-**Respuesta:** En la captura se muestra la forma de onda de la grabación `pav_4061.wav` ($22{,}3\text{ s}$) comparando las dos pistas de etiquetas: el etiquetado manual `pav_4061.lab` (pista 2) y la salida generada automáticamente por nuestro detector `pav_4061_auto.lab` (pista 1) con el umbral por defecto de $12\text{ dB}$.
+> **Respuesta:** En la captura se muestra la forma de onda de la grabación `pav_4061.wav` ($22{,}3\text{ s}$) comparando las dos pistas de etiquetas: el etiquetado manual `pav_4061.lab` (pista 2) y la salida generada automáticamente por nuestro detector `pav_4061_auto.lab` (pista 1) con el umbral por defecto de $12\text{ dB}$.
 
 - Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
 
@@ -194,11 +194,10 @@ Ejercicios
 > * **Retardo al finalizar cada tramo de voz:** Al terminar cada palabra o frase (por ejemplo en $0{,}57\text{ s}$ frente a $0{,}45\text{ s}$, o en $15{,}86\text{ s}$ frente a $15{,}59\text{ s}$), el detector automático tarda entre $120\text{ ms}$ y $370\text{ ms}$ más en conmutar a `S` debido al margen de espera de 12 tramas ($120\text{ ms}$) en `ST_MAYBE_SILENCE`, necesario para no cortar consonantes oclusivas ni aspiraciones finales.
 > * **Inicio ligeramente adelantado:** En la primera palabra (*"Hola"*), el detector entra en `V` en $0{,}080\text{ s}$ en lugar de $0{,}125\text{ s}$ porque capta la aspiración previa al inicio de la vocal.
 
-- Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
-  continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
+- Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
   el resumen).
 
-  > **Respuesta:** Evaluando el sistema completo sobre la base de datos `db.v4` con el umbral por defecto de $12\text{ dB}$, se alcanza una puntuación-F global de **$93{,}952\%$**:
+> **Respuesta:** Evaluando el sistema completo sobre la base de datos `db.v4` con el umbral por defecto de $12\text{ dB}$, se alcanza una puntuación-F global de **$93{,}952\%$**:
 >
 > **************** Summary ****************
 > Recall V:606.47/625.02 97.03%   Precision V:606.47/671.64 90.30%   F-score V (2)  : 95.61%
