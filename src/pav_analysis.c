@@ -11,7 +11,7 @@ float compute_power(const float *x, unsigned int N) {
         suma += x[n] * x[n];
     }
     
-    return 10.0f * log10( suma / N);
+    return 10.0f * log10f((suma / (float)N) + 1e-12f);
 }
 
 /* Amplitud mitjana: valor mitg del valor absolut de la senyal.

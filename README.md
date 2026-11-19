@@ -184,11 +184,27 @@ Ejercicios
 
 - Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección automática conseguida para el fichero grabado al efecto. 
 
+![Detección automática frente a etiquetado manual](img/grafica_vad.png)
+
+**Respuesta:** En la captura se muestra la forma de onda de la grabación `pav_4061.wav` ($22{,}3\text{ s}$) comparando las dos pistas de etiquetas: el etiquetado manual `pav_4061.lab` (pista 2) y la salida generada automáticamente por nuestro detector `pav_4061_auto.lab` (pista 1) con el umbral por defecto de $12\text{ dB}$.
+
 - Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
+
+> **Respuesta:** El detector automático reproduce exactamente la misma estructura de 7 segmentos de voz y 8 segmentos de silencio que el etiquetado manual, detectando tanto las pausas largas como las pausas breves entre palabras y frases ($0{,}57\text{--}0{,}62\text{ s}$, $1{,}93\text{--}1{,}99\text{ s}$, $5{,}77\text{--}6{,}56\text{ s}$, $12{,}29\text{--}12{,}67\text{ s}$, $15{,}86\text{--}16{,}01\text{ s}$ y $20{,}04\text{--}20{,}21\text{ s}$). Las única discrepancia que hay, és que varian algunos milisegundos en las fronteras. Puede pasar por las siguientes razones:
+> * **Retardo al finalizar cada tramo de voz:** Al terminar cada palabra o frase (por ejemplo en $0{,}57\text{ s}$ frente a $0{,}45\text{ s}$, o en $15{,}86\text{ s}$ frente a $15{,}59\text{ s}$), el detector automático tarda entre $120\text{ ms}$ y $370\text{ ms}$ más en conmutar a `S` debido al margen de espera de 12 tramas ($120\text{ ms}$) en `ST_MAYBE_SILENCE`, necesario para no cortar consonantes oclusivas ni aspiraciones finales.
+> * **Inicio ligeramente adelantado:** En la primera palabra (*"Hola"*), el detector entra en `V` en $0{,}080\text{ s}$ en lugar de $0{,}125\text{ s}$ porque capta la aspiración previa al inicio de la vocal.
 
 - Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
   continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
   el resumen).
+
+  > **Respuesta:** Evaluando el sistema completo sobre la base de datos `db.v4` con el umbral por defecto de $12\text{ dB}$, se alcanza una puntuación-F global de **$93{,}952\%$**:
+>
+> **************** Summary ****************
+> Recall V:606.47/625.02 97.03%   Precision V:606.47/671.64 90.30%   F-score V (2)  : 95.61%
+> Recall S:335.29/400.47 83.73%   Precision S:335.29/353.84 94.76%   F-score S (1/2): 92.33%
+> ===> TOTAL: 93.952%
+> ```
 
 
 ### Trabajos de ampliación
@@ -207,8 +223,16 @@ Ejercicios
 
 ### Contribuciones adicionales y/o comentarios acerca de la práctica
 
-- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o 
-  parámetros alternativos, etc.).
+- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o parámetros alternativos, etc.).
+
+- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o parámetros alternativos, etc.).
+
+> [!NOTE]
+> **Respuesta:** Para mejorar el funcionamiento del detector y evitar que cambiara de estado constantemente por culpa de ruidos puntuales o pausas cortas, hemos añadido estas mejoras sobre la estructura base:
+> * **Estados intermedios (`ST_MAYBE_VOICE` y `ST_MAYBE_SILENCE`):** En lugar de pasar directamente de silencio a voz (o al revés) en una sola trama, he aplicado las duraciones mínimas que hemos deducido en el análisis manual. El detector espera 3 tramas ($30\text{ ms}$) para confirmar que empieza la voz (salvo que la potencia suba mucho de golpe, donde entra directo para no recortar el inicio de la palabra) y aguanta 12 tramas ($120\text{ ms}$) antes de volver a silencio para no partir las palabras por la mitad durante las oclusivas (`/p/`, `/t/`, `/k/`).
+> * Como se veía en la gráfica de WaveSurfer, sonidos como la `/s/` o la `/f/` tienen poca potencia pero muchos cruces por cero. Por eso, si la ZCR supera los $2500\text{ Hz}$ y la potencia está algo por encima del ruido, también lo considero voz para no perder los finales de palabra.
+> * **Ajuste progresivo del ruido de fondo:** En el código base, la potencia del ruido (`potencia_soroll`) se calculaba únicamente con la media de las 5 primeras tramas ($50\text{ ms}$) y ya no se modificaba. El problema es que, si justo al principio hay una respiración o un golpe en el micrófono, el umbral queda demasiado alto para el resto del audio, y tampoco se adapta si cambia el ruido ambiente a mitad de grabación. Para solucionarlo y asegurar que funcionará bien con audios nuevos,hemos establecido que, cada vez que el detector está en el estado de silencio (`ST_SILENCE`), voy actualizando `potencia_soroll` a dos velocidades: si la trama actual tiene menos potencia que el ruido estimado, le doy más peso ($15\%$) para que baje rápido al nivel real de silencio de la sala; en cambio, si tiene algo más de energía, solo le damos un $2\%$ de peso para que suba muy despacio y no se desajuste por respiraciones o ruidos leves en las pausas.
+>* Si una grabación empieza con silencio digital casi nulo (como ocurre en los primeros milisegundos de `pav_4061.wav`), `potencia_soroll` se estbalece a un nivel muy bajo y luego el ruido ambiente normal de las pausas supera el umbral. Para evitarlo, estimamos el nivel de voz (`potencia_veu`) en `ST_VOICE` y fijamos un límite inferior para que `potencia_soroll` nunca caiga más de $55\text{ dB}$ por debajo de la voz.
 
 - Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
   considere de interés de cara a su evaluación.
