@@ -204,7 +204,6 @@ Ejercicios
 > Recall V:606.47/625.02 97.03%   Precision V:606.47/671.64 90.30%   F-score V (2)  : 95.61%
 > Recall S:335.29/400.47 83.73%   Precision S:335.29/353.84 94.76%   F-score S (1/2): 92.33%
 > ===> TOTAL: 93.952%
-> ```
 
 
 ### Trabajos de ampliación
@@ -227,7 +226,6 @@ Ejercicios
 
 - Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o parámetros alternativos, etc.).
 
-> [!NOTE]
 > **Respuesta:** Para mejorar el funcionamiento del detector y evitar que cambiara de estado constantemente por culpa de ruidos puntuales o pausas cortas, hemos añadido estas mejoras sobre la estructura base:
 > * **Estados intermedios (`ST_MAYBE_VOICE` y `ST_MAYBE_SILENCE`):** En lugar de pasar directamente de silencio a voz (o al revés) en una sola trama, he aplicado las duraciones mínimas que hemos deducido en el análisis manual. El detector espera 3 tramas ($30\text{ ms}$) para confirmar que empieza la voz (salvo que la potencia suba mucho de golpe, donde entra directo para no recortar el inicio de la palabra) y aguanta 12 tramas ($120\text{ ms}$) antes de volver a silencio para no partir las palabras por la mitad durante las oclusivas (`/p/`, `/t/`, `/k/`).
 > * Como se veía en la gráfica de WaveSurfer, sonidos como la `/s/` o la `/f/` tienen poca potencia pero muchos cruces por cero. Por eso, si la ZCR supera los $2500\text{ Hz}$ y la potencia está algo por encima del ruido, también lo considero voz para no perder los finales de palabra.
