@@ -66,7 +66,17 @@ Se probaron alternativas para que la referencia de ruido y los tiempos de decisi
 | Estimación por percentil y confirmación variable | Los mismos ajustes, con 30 ms para voz clara y 50 ms para voz dudosa | 94,291 % |
 | Valores predeterminados restaurados | Calibración inicial y actualización de ruido desactivada | 94,796 % |
 
-Las variantes adaptativas no superaron la mejor medición de 94,843 %. Por eso los valores predeterminados dejan desactivados el percentil y la actualización: se calibra con las primeras 10 tramas y después se mantiene fija la referencia. La última ejecución con esos valores obtuvo 94,796 %, que también se redondea a 94,8 % con una cifra decimal.
+Las variantes adaptativas no superaron la mejor medición de 94,843 %. Por eso los valores predeterminados dejan desactivados el percentil y la actualización: se calibra con las primeras 10 tramas y después se mantiene fija la referencia.
+
+La última ejecución con los valores predeterminados obtuvo 94,796 %:
+
+| Clase | Sensibilidad | Precisión | F-score |
+|---|---:|---:|---:|
+| Voz | 97,66 % | 90,87 % | 96,22 % (β = 2) |
+| Silencio | 84,68 % | 95,86 % | 93,39 % (β = 0,5) |
+| **Total** |  |  | **94,796 %** |
+
+Este resultado quedó 0,047 puntos porcentuales por debajo del mejor registrado. Ambos se redondean a 94,8 % con una cifra decimal.
 
 También se valoró combinar potencia y ZCR para resolver tramas dudosas, estimar el ruido mediante amplitudes mínimas o aumentar automáticamente el nivel de los audios bajos. Esas reglas no se incorporaron a la evaluación final: el ZCR y la amplitud media no participan en la clasificación, y no se implementó una ganancia automática. La prueba adaptativa realizada estimaba el ruido mediante percentiles de potencia, no mediante el promedio de amplitudes mínimas.
 
