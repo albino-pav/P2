@@ -47,16 +47,14 @@ Se escucharon ejemplos con puntuaciones altas, medias y bajas para identificar q
 - En `pav_2109.wav` hay un ruido de fondo parecido a un petardeo, con un volumen cercano al de la voz.
 - En `pav_2121.wav` la grabación tiene poco nivel. Subir el volumen del portátil ayuda a escucharla, pero no cambia la amplitud que procesa el programa.
 
-En `db.v4` hay varias grabaciones con los nombres `pav_2171`, `pav_2121` y `pav_2361`, por eso se muestra el rango de sus resultados:
+En `db.v4` hay varias grabaciones con algunos nombres. La tabla muestra el promedio de acierto de cada nombre y el número de grabaciones incluidas:
 
-| Archivo | Grabaciones | Acierto obtenido |
+| Archivo | Grabaciones | Acierto medio |
 |---|---:|---:|
 | `pav_2109` | 1 | 98,016 % |
-| `pav_2171` | 9 | 89,953–99,489 % |
-| `pav_2121` | 6 | 77,695–99,454 % |
-| `pav_2361` | 2 | 98,438–99,217 % |
-
-Los porcentajes corresponden a las distintas grabaciones encontradas en los cursos de la base; no son una única cifra por nombre.
+| `pav_2171` | 9 | 95,601 % |
+| `pav_2121` | 6 | 92,927 % |
+| `pav_2361` | 2 | 98,828 % |
 
 La revisión mostró que una misma configuración no obtiene el mismo resultado en todos los audios. Por eso se probaron ajustes para adaptar la referencia de ruido y los tiempos de confirmación. En `db.v4`, esos cambios no superaron la puntuación de la configuración anterior.
 
