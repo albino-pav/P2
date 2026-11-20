@@ -2,7 +2,7 @@
 
 # Be sure that this file has execution permissions:
 # Use the nautilus explorer or chmod +x run_vad.sh
-umbral=${1:--40}
+umbral=${1:-+5.49}
 # Establecemos que el código de retorno de un pipeline sea el del último programa con código de retorno
 # distinto de cero, o cero si todos devuelven cero.
 set -o pipefail
