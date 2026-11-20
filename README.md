@@ -18,17 +18,37 @@ La imagen corresponde a una prueba de la variante adaptativa, que obtuvo 94,291 
 
 ## 2. Detector
 
-El programa divide la señal en tramas de 10 ms. En la configuración seleccionada, estima el ruido con las primeras 10 tramas y usa ese valor como referencia. El umbral de entrada a voz se calcula sumando al ruido el margen indicado con `-u`, cuyo valor predeterminado es 5,49 dB. Para volver a silencio se aplica un umbral 2 dB menor.
+El programa procesa el audio en tramas de 10 ms. Para cada trama calcula tres medidas:
 
-La voz se confirma después de 30 ms. El paso a silencio se confirma tras 100 ms por debajo del umbral de salida. Cuando se confirma un cambio, el programa retrocede el límite hasta la primera trama candidata para reducir el retraso.
+- **Potencia:** calcula el promedio de las muestras al cuadrado y lo expresa en decibelios. La potencia indica el nivel de energía de la trama y es la medida que utiliza el detector para clasificarla.
+- **Amplitud media:** calcula el promedio de los valores absolutos de las muestras. Está disponible en el código, pero no se usa para decidir si hay voz.
+- **ZCR:** cuenta los cambios de signo de la señal y los relaciona con el tiempo de la trama. Se muestra en las gráficas y en la depuración, pero no interviene en la clasificación. Un ZCR alto por sí solo no distingue la voz del ruido.
 
-También se puede probar una estimación alternativa con `--percentil-ruido 20`, que hace una pasada inicial por el archivo. `--adaptacion-ruido` permite controlar cuánto cambia la referencia durante los tramos de silencio. Estas opciones se probaron, pero no dieron el mejor resultado global de `db.v4`.
+### Parámetros principales
+
+| Parámetro | Valor predeterminado | Función |
+|---|---:|---|
+| Longitud de trama | 10 ms | Duración de cada fragmento analizado. |
+| Calibración inicial | 10 tramas (100 ms) | Estima el nivel de ruido al comienzo del audio. |
+| Margen de entrada a voz (`-u`) | 5,49 dB | Se suma al nivel de ruido estimado para fijar el umbral de voz. |
+| Histéresis (`--histeresis`) | 2 dB | El umbral de salida a silencio queda 2 dB por debajo del de entrada. |
+| Margen de voz clara (`--margen-claro`) | 3 dB | Diferencia sobre el umbral para considerar clara una posible entrada en voz. |
+| Confirmación de voz clara o dudosa | 30 ms / 30 ms | Tiempo que debe mantenerse la potencia sobre el umbral para confirmar voz. |
+| Confirmación de silencio | 100 ms | Tiempo por debajo del umbral de salida para confirmar el silencio. |
+| Percentil de ruido (`--percentil-ruido`) | 0 | Con 0 usa la calibración inicial; un valor mayor estima el ruido con una pasada por el archivo. |
+| Actualización de ruido (`--adaptacion-ruido`) | 0 | Con 0 mantiene fija la referencia después de calibrar. |
+
+La calibración predeterminada supone que las primeras 10 tramas representan el ruido de fondo, por lo que se presupone que ese inicio no contiene voz relevante. El umbral de entrada a voz es el nivel de ruido más el margen de 5,49 dB. Para salir de voz se usa el umbral de entrada menos la histéresis. Esta diferencia evita que pequeñas variaciones hagan alternar continuamente entre voz y silencio.
+
+El detector usa estados intermedios: espera a confirmar la voz (`MAYBE_VOICE`) o el silencio (`MAYBE_SILENCE`) antes de cambiar de estado. Si confirma una transición, corrige su límite hasta la primera trama candidata para reducir el retraso introducido por la espera.
+
+Con `--percentil-ruido` mayor que cero se calcula una referencia a partir de un percentil de las potencias de las tramas del archivo. `--adaptacion-ruido` permite actualizarla lentamente durante los tramos considerados silencio.
 
 Con `-v` se muestran el tiempo, el estado, la potencia, el ZCR, el nivel de ruido y los umbrales de cada trama.
 
 ## 3. Evaluación sobre `db.v4`
 
-Al probar distintos valores de para el umbral, la mejor ejecución anterior obtuvo 94,843 % con un umbral de 5,49 dB y la corrección temporal de los límites. Este es el resumen por clases de esa ejecución:
+La mejor ejecución registrada obtuvo **94,843 %** con un umbral de 5,49 dB y la corrección temporal de los límites. El resumen por clases fue:
 
 | Clase | Sensibilidad | Precisión | F-score |
 |---|---:|---:|---:|
@@ -36,7 +56,19 @@ Al probar distintos valores de para el umbral, la mejor ejecución anterior obtu
 | Silencio | 87,70 % | 95,13 % | 93,54 % (β = 0,5) |
 | **Total** |  |  | **94,843 %** |
 
-Después se probó la estimación por percentil 20, con actualización del ruido de 0,01. Con confirmación fija de 30 ms obtuvo 94,074 %; al cambiar la confirmación a 30 o 50 ms según la potencia de la primera trama, obtuvo 94,291 %. La última evaluación con los valores predeterminados restaurados dio 94,796 %. Es prácticamente el mismo resultado al redondear a una décima (94,8 %), aunque la mejor medición anterior sigue siendo 94,843 %.
+### Pruebas de ajustes adicionales
+
+Se probaron alternativas para que la referencia de ruido y los tiempos de decisión respondieran a las características del audio:
+
+| Prueba | Ajustes | Resultado total |
+|---|---|---:|
+| Estimación por percentil | Percentil 20, actualización 0,01 y confirmación fija de 30 ms | 94,074 % |
+| Estimación por percentil y confirmación variable | Los mismos ajustes, con 30 ms para voz clara y 50 ms para voz dudosa | 94,291 % |
+| Valores predeterminados restaurados | Calibración inicial y actualización de ruido desactivada | 94,796 % |
+
+Las variantes adaptativas no superaron la mejor medición de 94,843 %, por lo que se conservaron los valores predeterminados. La última ejecución quedó muy cerca: ambas puntuaciones se redondean a 94,8 % con una cifra decimal.
+
+También se valoró combinar potencia y ZCR para resolver tramas dudosas, estimar el ruido mediante amplitudes mínimas o aumentar automáticamente el nivel de los audios bajos. Esas reglas no se incorporaron a la evaluación final: el ZCR y la amplitud media no participan en la clasificación, y no se implementó una ganancia automática. La prueba adaptativa realizada estimaba el ruido mediante percentiles de potencia, no mediante el promedio de amplitudes mínimas.
 
 ## 4. Revisión auditiva de ejemplos
 
@@ -60,19 +92,11 @@ La revisión mostró que una misma configuración no obtiene el mismo resultado 
 
 ## 5. Ampliación
 
-La opción `-w` permite crear un WAV de salida poniendo a cero los tramos que el detector clasifica como silencio. No aplica una cancelación espectral del ruido.
+La opción `-w` genera un WAV de salida poniendo a cero los tramos que el detector clasifica como silencio. No aplica una cancelación espectral del ruido.
 
-Los parámetros del detector se pueden cambiar desde la línea de comandos:
+Los parámetros principales y sus valores predeterminados se describen en la sección 2. Se pueden cambiar al ejecutar el programa; `./bin/vad --help` muestra los nombres y formatos de todas las opciones.
 
-- `-u` o `--umbral`: margen sobre el ruido estimado; valor predeterminado, 5,49 dB.
-- `--histeresis`: diferencia entre los umbrales de entrada y salida; predeterminado, 2 dB.
-- `--margen-claro`: margen para considerar clara la detección de voz; predeterminado, 3 dB.
-- `--confirmacion-clara-ms` y `--confirmacion-dudosa-ms`: tiempos para confirmar voz; predeterminados, 30 ms cada uno.
-- `--resguardo-silencio-ms`: tiempo para confirmar el paso a silencio; predeterminado, 100 ms.
-- `--percentil-ruido`: percentil para una pasada inicial por todo el archivo; el valor 0 usa las primeras 10 tramas y es el predeterminado.
-- `--adaptacion-ruido`: velocidad de actualización del nivel de ruido; predeterminado, 0, que deja fija la referencia después de la calibración inicial.
-
-Las duraciones se convierten a tramas de 10 ms. Meson genera la cabecera de `docopt_c` al compilar, a partir de `src/vad.docopt`.
+Meson genera la cabecera de `docopt_c` al compilar, a partir de `src/vad.docopt`.
 
 Esta captura muestra la ayuda y los valores predeterminados de la configuración actual:
 
