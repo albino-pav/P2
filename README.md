@@ -33,16 +33,16 @@ El programa procesa el audio en tramas de 10 ms. Para cada trama calcula tres me
 | Margen de entrada a voz (`-u`) | 5,49 dB | Se suma al nivel de ruido estimado para fijar el umbral de voz. |
 | Histéresis (`--histeresis`) | 2 dB | El umbral de salida a silencio queda 2 dB por debajo del de entrada. |
 | Margen de voz clara (`--margen-claro`) | 3 dB | Diferencia sobre el umbral para considerar clara una posible entrada en voz. |
-| Confirmación de voz clara o dudosa | 30 ms / 30 ms | Tiempo que debe mantenerse la potencia sobre el umbral para confirmar voz. |
+| Confirmación de voz clara o dudosa | 30 ms para cada caso | Tiempo que debe mantenerse la potencia sobre el umbral para confirmar voz. |
 | Confirmación de silencio | 100 ms | Tiempo por debajo del umbral de salida para confirmar el silencio. |
-| Percentil de ruido (`--percentil-ruido`) | 0 | Con 0 usa la calibración inicial; un valor mayor estima el ruido con una pasada por el archivo. |
-| Actualización de ruido (`--adaptacion-ruido`) | 0 | Con 0 mantiene fija la referencia después de calibrar. |
+| Percentil de ruido (`--percentil-ruido`) | 0 (desactivado) | Admite 1–99. Un valor mayor que 0 estima el nivel inicial con ese percentil de las potencias de todo el archivo. |
+| Actualización de ruido (`--adaptacion-ruido`) | 0 (desactivada) | Admite valores de 0 a 1; por ejemplo, 0,01 ajusta lentamente la referencia durante el silencio firme. |
 
 La calibración predeterminada supone que las primeras 10 tramas representan el ruido de fondo, por lo que se presupone que ese inicio no contiene voz relevante. El umbral de entrada a voz es el nivel de ruido más el margen de 5,49 dB. Para salir de voz se usa el umbral de entrada menos la histéresis. Esta diferencia evita que pequeñas variaciones hagan alternar continuamente entre voz y silencio.
 
 El detector usa estados intermedios: espera a confirmar la voz (`MAYBE_VOICE`) o el silencio (`MAYBE_SILENCE`) antes de cambiar de estado. Si confirma una transición, corrige su límite hasta la primera trama candidata para reducir el retraso introducido por la espera.
 
-Con `--percentil-ruido` mayor que cero se calcula una referencia a partir de un percentil de las potencias de las tramas del archivo. `--adaptacion-ruido` permite actualizarla lentamente durante los tramos considerados silencio.
+Las dos opciones actúan en momentos distintos y se pueden usar por separado o juntas. `--percentil-ruido 20` activa una pasada inicial por todo el archivo y toma como referencia el percentil 20 de la potencia de sus tramas. `--adaptacion-ruido 0.01` actualiza después esa referencia con un paso del 1 % hacia la potencia de cada trama que ya está dentro de un silencio firme. El percentil fija el punto de partida; la adaptación permite seguir cambios lentos del ruido.
 
 Con `-v` se muestran el tiempo, el estado, la potencia, el ZCR, el nivel de ruido y los umbrales de cada trama.
 
@@ -66,7 +66,7 @@ Se probaron alternativas para que la referencia de ruido y los tiempos de decisi
 | Estimación por percentil y confirmación variable | Los mismos ajustes, con 30 ms para voz clara y 50 ms para voz dudosa | 94,291 % |
 | Valores predeterminados restaurados | Calibración inicial y actualización de ruido desactivada | 94,796 % |
 
-Las variantes adaptativas no superaron la mejor medición de 94,843 %, por lo que se conservaron los valores predeterminados. La última ejecución quedó muy cerca: ambas puntuaciones se redondean a 94,8 % con una cifra decimal.
+Las variantes adaptativas no superaron la mejor medición de 94,843 %. Por eso los valores predeterminados dejan desactivados el percentil y la actualización: se calibra con las primeras 10 tramas y después se mantiene fija la referencia. La última ejecución con esos valores obtuvo 94,796 %, que también se redondea a 94,8 % con una cifra decimal.
 
 También se valoró combinar potencia y ZCR para resolver tramas dudosas, estimar el ruido mediante amplitudes mínimas o aumentar automáticamente el nivel de los audios bajos. Esas reglas no se incorporaron a la evaluación final: el ZCR y la amplitud media no participan en la clasificación, y no se implementó una ganancia automática. La prueba adaptativa realizada estimaba el ruido mediante percentiles de potencia, no mediante el promedio de amplitudes mínimas.
 
@@ -112,10 +112,10 @@ ninja -C bin
 scripts/run_vad.sh 5.49
 ```
 
-Para generar etiquetas y un WAV con los silencios detectados puestos a cero:
+Para guardar las etiquetas de voz y silencio:
 
 ```sh
-./bin/vad -i pav_411.wav -o pav_411_auto.vad -w pav_411_silenciado.wav
+./bin/vad -i pav_411.wav -o pav_411_auto.vad
 ```
 
 ## Comentarios finales
