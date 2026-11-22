@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "vad.h"
+#include "pav_analysis.h"
 
 const float FRAME_TIME = 10.0F; /* in ms. */
 
@@ -13,7 +14,7 @@ const float FRAME_TIME = 10.0F; /* in ms. */
  */
 
 const char *state_str[] = {
-  "UNDEF", "S", "V", "INIT"
+  "UNDEF", "S", "V", "INIT", "MAYBE_V", "MAYBE_S"
 };
 
 const char *state2str(VAD_STATE st) {
@@ -31,7 +32,7 @@ typedef struct {
  * TODO: Delete and use your own features!
  */
 
-Features compute_features(const float *x, int N) {
+Features compute_features(const float *x, int N, float fm) {
   /*
    * Input: x[i] : i=0 .... N-1 
    * Ouput: computed features
@@ -42,7 +43,8 @@ Features compute_features(const float *x, int N) {
    * For the moment, compute random value between 0 and 1 
    */
   Features feat;
-  feat.zcr = feat.p = feat.am = (float) rand()/RAND_MAX;
+  feat.p = compute_power(x,N);
+  feat.zcr = compute_zcr(x, N, fm);
   return feat;
 }
 
@@ -55,6 +57,10 @@ VAD_DATA * vad_open(float rate) {
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
   vad_data->frame_length = rate * FRAME_TIME * 1e-3;
+  vad_data->potencia_soroll = 0.0f;
+  vad_data->potencia_veu = -100.0f;
+  vad_data->init_frames = 0;
+  vad_data->count_frames = 0;
   return vad_data;
 }
 
@@ -65,7 +71,9 @@ VAD_STATE vad_close(VAD_DATA *vad_data) {
   VAD_STATE state = vad_data->state;
 
   free(vad_data);
-  return state;
+  if (state == ST_VOICE || state == ST_MAYBE_SILENCE)
+    return ST_VOICE;
+  return ST_SILENCE;
 }
 
 unsigned int vad_frame_size(VAD_DATA *vad_data) {
@@ -77,38 +85,88 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x) {
+VAD_STATE vad(VAD_DATA *vad_data, float *x, float llindar) {
 
   /* 
    * TODO: You can change this, using your own features,
    * program finite state automaton, define conditions, etc.
    */
 
-  Features f = compute_features(x, vad_data->frame_length);
+  Features f = compute_features(x, vad_data->frame_length, vad_data->sampling_rate);
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
 
+  int is_strong_voice = (f.p > vad_data->potencia_soroll + llindar + 5.0f);
+  int is_voice = (f.p > vad_data->potencia_soroll + llindar) ||
+                 (f.zcr > 2500.0f && f.p > vad_data->potencia_soroll + 0.75f * llindar);
+  //Mira en que estado estabamos i determina en que estado estamos ahora
   switch (vad_data->state) {
+
   case ST_INIT:
-    vad_data->state = ST_SILENCE;
+    vad_data->potencia_soroll += f.p;
+    vad_data->init_frames++;
+    if (vad_data->init_frames == 5) {
+      vad_data->potencia_soroll /= 5.0f;
+      vad_data->potencia_veu = vad_data->potencia_soroll + 20.0f;
+      vad_data->state = ST_SILENCE;
+    }
     break;
 
   case ST_SILENCE:
-    if (f.p > 0.95)
-      vad_data->state = ST_VOICE;
+    if (is_strong_voice) {
+    vad_data->state = ST_VOICE;
+  } else if (is_voice) {
+    vad_data->state = ST_MAYBE_VOICE;
+    vad_data->count_frames = 1;
+  } else if (f.p < vad_data->potencia_soroll)
+      vad_data->potencia_soroll = 0.85f * vad_data->potencia_soroll + 0.15f * f.p;
+    else
+      vad_data->potencia_soroll = 0.98f * vad_data->potencia_soroll + 0.02f * f.p;
+    if (vad_data->potencia_soroll < vad_data->potencia_veu - 55.0f)
+      vad_data->potencia_soroll = vad_data->potencia_veu - 55.0f;
     break;
 
   case ST_VOICE:
-    if (f.p < 0.01)
-      vad_data->state = ST_SILENCE;
+    if (f.p > vad_data->potencia_veu)
+      vad_data->potencia_veu = 0.7f * vad_data->potencia_veu + 0.3f * f.p;
+    else
+      vad_data->potencia_veu = 0.99f * vad_data->potencia_veu + 0.01f * f.p;
+    if (vad_data->potencia_soroll < vad_data->potencia_veu - 55.0f)
+      vad_data->potencia_soroll = vad_data->potencia_veu - 55.0f;
+    if (!is_voice) {
+    vad_data->state = ST_MAYBE_SILENCE;
+    vad_data->count_frames = 1;
+  }
     break;
 
   case ST_UNDEF:
     break;
+
+  case ST_MAYBE_VOICE:
+    if (is_voice) {
+      vad_data->count_frames++;
+      if (vad_data->count_frames >= 3 || is_strong_voice)
+        vad_data->state = ST_VOICE;
+    } else {
+      vad_data->state = ST_SILENCE;
+    }
+  break;
+
+  case ST_MAYBE_SILENCE:
+    if (!is_voice) {
+      vad_data->count_frames++;
+      if (vad_data->count_frames >= 12)
+        vad_data->state = ST_SILENCE;
+    } else {
+      vad_data->state = ST_VOICE;
+    }
+  break;
+
   }
 
-  if (vad_data->state == ST_SILENCE ||
-      vad_data->state == ST_VOICE)
-    return vad_data->state;
+  if (vad_data->state == ST_SILENCE || vad_data->state == ST_INIT || vad_data->state == ST_MAYBE_VOICE)
+    return ST_SILENCE;
+  else if (vad_data->state == ST_VOICE || vad_data->state == ST_MAYBE_SILENCE)
+    return ST_VOICE;
   else
     return ST_UNDEF;
 }
