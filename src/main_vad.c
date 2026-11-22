@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
   input_wav  = args.input_wav;
   output_vad = args.output_vad;
   output_wav = args.output_wav;
-
+  float llindar  =atof(args.llindar);
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
     return -1;
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
       /* TODO: copy all the samples into sndfile_out */
     }
 
-    state = vad(vad_data, buffer);
+    state = vad(vad_data, buffer, llindar);
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
     /* TODO: print only SILENCE and VOICE labels */
@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (sndfile_out != 0) {
-      /* TODO: go back and write zeros in silence segments */
+      /* Escribir muestras originales si es voz, o ceros si es silencio */
+      sf_write_float(sndfile_out, (state == ST_VOICE) ? buffer : buffer_zeros, frame_size);
     }
   }
 

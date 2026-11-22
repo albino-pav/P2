@@ -1,0 +1,10 @@
+project('P2_PAV', 'C')
+sndfile_dep = dependency('sndfile')
+m_dep = meson.get_compiler('c').find_library('m', required : false)
+
+src = [
+  'src/main_vad.c',
+  'src/vad.c'
+]
+
+executable('vad', src, dependencies : [sndfile_dep, m_dep])
