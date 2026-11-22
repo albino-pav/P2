@@ -12,8 +12,11 @@
 
 typedef struct {
     /* options without arguments */
+    int confirma_alt;
     int help;
+    int limita_soroll;
     int permet_baixada;
+    int rescat_zcr;
     int sense_retroces;
     int treu_dc;
     int treu_pic;
@@ -21,13 +24,18 @@ typedef struct {
     int version;
     /* options with arguments */
     char *alfa;
+    char *espera;
     char *histeresi;
     char *inici;
     char *input_wav;
     char *llindar;
+    char *marge_soroll;
     char *output_vad;
+    char *pujada;
+    char *rebaixa_zcr;
     char *silenci;
     char *veu;
+    char *zcr;
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -54,6 +62,14 @@ const char help_message[] =
 "   --permet-baixada  Permet un bloc baix mentre confirma veu\n"
 "   --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia\n"
 "   --sense-retroces  Posa el canvi quan el confirma, sense tornar enrere\n"
+"   --rescat-zcr  Permet veu fluixa amb ZCR alt i potencia suficient\n"
+"   --confirma-alt  Exigeix arribar a un segon llindar per confirmar veu\n"
+"   --limita-soroll  Actualitza el soroll nomes amb blocs propers al soroll estimat\n"
+"   --zcr=HZ  Llindar de ZCR [default: 3000]\n"
+"   --rebaixa-zcr=DB  Rebaixa de potencia per al rescat ZCR [default: 2]\n"
+"   --pujada=DB  Increment per al llindar de confirmacio [default: 3]\n"
+"   --espera=N  Maxim de blocs per confirmar veu [default: 25]\n"
+"   --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -284,10 +300,16 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
                    !strcmp(option->olong, "--version")) {
             printf("%s\n", version);
             return 1;
+        } else if (!strcmp(option->olong, "--confirma-alt")) {
+            args->confirma_alt = option->value;
         } else if (!strcmp(option->olong, "--help")) {
             args->help = option->value;
+        } else if (!strcmp(option->olong, "--limita-soroll")) {
+            args->limita_soroll = option->value;
         } else if (!strcmp(option->olong, "--permet-baixada")) {
             args->permet_baixada = option->value;
+        } else if (!strcmp(option->olong, "--rescat-zcr")) {
+            args->rescat_zcr = option->value;
         } else if (!strcmp(option->olong, "--sense-retroces")) {
             args->sense_retroces = option->value;
         } else if (!strcmp(option->olong, "--treu-dc")) {
@@ -301,6 +323,9 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--alfa")) {
             if (option->argument)
                 args->alfa = option->argument;
+        } else if (!strcmp(option->olong, "--espera")) {
+            if (option->argument)
+                args->espera = option->argument;
         } else if (!strcmp(option->olong, "--histeresi")) {
             if (option->argument)
                 args->histeresi = option->argument;
@@ -313,15 +338,27 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--llindar")) {
             if (option->argument)
                 args->llindar = option->argument;
+        } else if (!strcmp(option->olong, "--marge-soroll")) {
+            if (option->argument)
+                args->marge_soroll = option->argument;
         } else if (!strcmp(option->olong, "--output-vad")) {
             if (option->argument)
                 args->output_vad = option->argument;
+        } else if (!strcmp(option->olong, "--pujada")) {
+            if (option->argument)
+                args->pujada = option->argument;
+        } else if (!strcmp(option->olong, "--rebaixa-zcr")) {
+            if (option->argument)
+                args->rebaixa_zcr = option->argument;
         } else if (!strcmp(option->olong, "--silenci")) {
             if (option->argument)
                 args->silenci = option->argument;
         } else if (!strcmp(option->olong, "--veu")) {
             if (option->argument)
                 args->veu = option->argument;
+        } else if (!strcmp(option->olong, "--zcr")) {
+            if (option->argument)
+                args->zcr = option->argument;
         }
     }
     /* commands */
@@ -342,8 +379,9 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "0", (char*) "9", NULL,
-        (char*) "5.94", NULL, (char*) "17", (char*) "8",
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "25", (char*)
+        "0", (char*) "9", NULL, (char*) "5.94", (char*) "2", NULL, (char*) "3",
+        (char*) "2", (char*) "17", (char*) "8", (char*) "3000",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -352,23 +390,31 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     Argument arguments[] = {
     };
     Option options[] = {
+        {NULL, "--confirma-alt", 0, 0, NULL},
         {"-h", "--help", 0, 0, NULL},
+        {NULL, "--limita-soroll", 0, 0, NULL},
         {NULL, "--permet-baixada", 0, 0, NULL},
+        {NULL, "--rescat-zcr", 0, 0, NULL},
         {NULL, "--sense-retroces", 0, 0, NULL},
         {NULL, "--treu-dc", 0, 0, NULL},
         {NULL, "--treu-pic", 0, 0, NULL},
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
         {NULL, "--alfa", 1, 0, NULL},
+        {NULL, "--espera", 1, 0, NULL},
         {NULL, "--histeresi", 1, 0, NULL},
         {NULL, "--inici", 1, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
         {"-l", "--llindar", 1, 0, NULL},
+        {NULL, "--marge-soroll", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
+        {NULL, "--pujada", 1, 0, NULL},
+        {NULL, "--rebaixa-zcr", 1, 0, NULL},
         {NULL, "--silenci", 1, 0, NULL},
-        {NULL, "--veu", 1, 0, NULL}
+        {NULL, "--veu", 1, 0, NULL},
+        {NULL, "--zcr", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 15, commands, arguments, options};
+    Elements elements = {0, 0, 23, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

@@ -43,6 +43,16 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Calen blocs positius, alfa entre 0 i 1 i una histèresi menor que el marge.\n");
         return 1;
     }
+    float zcr_limit, discount, boost, update_margin;
+    int max_wait;
+    if (!read_number(args.zcr, &zcr_limit) || !read_number(args.rebaixa_zcr, &discount) ||
+        !read_number(args.pujada, &boost) || !read_number(args.marge_soroll, &update_margin) ||
+        !read_frames(args.espera, &max_wait) || zcr_limit <= 0 || discount < 0 || boost <= 0 ||
+        update_margin < 0 || (args.rescat_zcr && discount >= margin) ||
+        (args.confirma_alt && max_wait < min_voice)) {
+        fprintf(stderr, "Revisa ZCR, rebaixa, pujada, espera i marge de soroll.\n");
+        return 1;
+    }
     if (args.input_wav == NULL || args.output_vad == NULL) {  // Comprovo els dos arguments obligatoris.
         fprintf(stderr, "%s\n", args.usage_pattern);  // Mostro la forma d'executar el programa.
         return 1;  // Indico que falten arguments.
@@ -80,6 +90,14 @@ int main(int argc, char *argv[]) {
     data->allow_dip = args.permet_baixada;
     data->remove_dc = args.treu_dc;
     data->backdate = !args.sense_retroces;
+    data->rescue_zcr = args.rescat_zcr;
+    data->confirm_high = args.confirma_alt;
+    data->guard_noise = args.limita_soroll;
+    data->zcr_threshold = zcr_limit;
+    data->zcr_discount = discount;
+    data->confirm_boost = boost;
+    data->max_wait = max_wait;
+    data->noise_update_margin = update_margin;
     data->margin_db = margin;  // Aplico el marge rebut per argument.
     float *buffer = malloc(frame_size * sizeof(float));  // Reservo només la memòria d'un bloc.
     if (buffer == NULL) {  // Comprovo la reserva.

@@ -23,6 +23,9 @@ typedef struct {
     int allow_dip;  // Permeto una baixada mentre confirmo veu.
     int remove_dc;  // Resto la mitjana abans de calcular la potència.
     int backdate;  // Torno al primer bloc pendent quan confirmo un canvi.
+    int rescue_zcr, confirm_high, guard_noise;  // Les tres proves inspirades en altres grups.
+    float zcr_threshold, zcr_discount, confirm_boost, noise_update_margin;
+    int max_wait, elapsed, high_seen;
     int voice_dips;  // Baixades que ja he permès en aquest intent.
     int count;  // Compto els blocs consecutius d'un estat provisional.
     float last_feature;  // Guardo la potència actual per a --verbose.

@@ -35,6 +35,13 @@ VAD_DATA *vad_open(float rate) {
     data->allow_dip = 0;
     data->remove_dc = 0;
     data->backdate = 1;
+    data->rescue_zcr = data->confirm_high = data->guard_noise = 0;
+    data->zcr_threshold = 3000.0f;
+    data->zcr_discount = 2.0f;
+    data->confirm_boost = 3.0f;
+    data->noise_update_margin = 2.0f;
+    data->max_wait = 25;
+    data->elapsed = data->high_seen = 0;
     data->voice_dips = 0;
     data->count = 0;  // Encara no tinc blocs provisionals.
     data->last_feature = -100.0f;  // Inicialitzo el valor que mostraré amb --verbose.
@@ -65,38 +72,50 @@ VAD_STATE vad(VAD_DATA *data, float *x) {
         return ST_SILENCE;  // Resolc també els blocs inicials que havia deixat pendents.
     }
 
+    float zcr = data->rescue_zcr ? compute_zcr(x, data->frame_length, data->sampling_rate) : 0.0f;
     float threshold = data->noise + data->margin_db;  // Sumo al soroll el marge seleccionat.
+    int candidate = power > threshold || (data->rescue_zcr && zcr > data->zcr_threshold && power > threshold - data->zcr_discount);
+    float exit_threshold = threshold - data->silence_gap;
+    int continuing = power > exit_threshold || (data->rescue_zcr && zcr > data->zcr_threshold && power > exit_threshold - data->zcr_discount);
     switch (data->state) {
     case ST_SILENCE:
-        if (power > threshold) {  // Detecto un possible inici de veu.
+        if (candidate) {  // Detecto un possible inici de veu.
             data->state = ST_MAYBE_VOICE;  // Espero abans de donar la veu per segura.
             data->count = 1;  // Compto el primer bloc candidat.
             data->voice_dips = 0;
-            if (data->min_voice == 1) data->state = ST_VOICE;  // Sense espera de veu.
-        } else {
+            data->elapsed = 1;
+            data->high_seen = power > threshold + data->confirm_boost;
+            if (data->min_voice == 1 && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;  // Sense espera de veu.
+        } else if (!data->guard_noise || power < data->noise + data->noise_update_margin) {
             data->noise += data->noise_alpha * (power - data->noise);  // Adapto el soroll mentre continuo en silenci.
         }
         break;
     case ST_MAYBE_VOICE:
-        if (power > threshold) {  // Comprovo si el nivell continua sent prou alt.
+        data->elapsed++;
+        if (power > threshold + data->confirm_boost) data->high_seen = 1;
+        if (candidate) {  // Comprovo si el nivell continua sent prou alt.
             data->count++;  // Afegeixo un altre bloc candidat.
-            if (data->count >= data->min_voice) data->state = ST_VOICE;  // Confirmo la veu si dura prou.
+            if (data->count >= data->min_voice && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;  // Confirmo la veu si dura prou.
         } else if (data->allow_dip && data->voice_dips == 0) {
             data->voice_dips = 1;  // No augmento el recompte de blocs alts.
         } else {
             data->state = ST_SILENCE;  // Descarto un pic massa curt.
             data->count = 0;  // Reinicio el recompte.
         }
+        if (data->confirm_high && data->state == ST_MAYBE_VOICE && data->elapsed >= data->max_wait) {
+            data->state = ST_SILENCE;  // No he arribat al llindar alt a temps.
+            data->count = 0;
+        }
         break;
     case ST_VOICE:
-        if (power <= threshold - data->silence_gap) {  // Detecto una possible pausa.
+        if (!continuing) {  // Detecto una possible pausa.
             data->state = ST_MAYBE_SILENCE;  // Espero abans de tallar el segment de veu.
             data->count = 1;  // Compto el primer bloc de nivell baix.
             if (data->min_silence == 1) data->state = ST_SILENCE;  // Sense espera de silenci.
         }
         break;
     case ST_MAYBE_SILENCE:
-        if (power <= threshold - data->silence_gap) {  // Comprovo si la pausa continua.
+        if (!continuing) {  // Comprovo si la pausa continua.
             data->count++;  // Compto un altre bloc de nivell baix.
             if (data->count >= data->min_silence) data->state = ST_SILENCE;  // Confirmo el silenci si dura prou.
         } else {

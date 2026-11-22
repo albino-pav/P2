@@ -18,6 +18,14 @@ Options:
    --permet-baixada  Permet un bloc baix mentre confirma veu
    --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia
    --sense-retroces  Posa el canvi quan el confirma, sense tornar enrere
+   --rescat-zcr  Permet veu fluixa amb ZCR alt i potencia suficient
+   --confirma-alt  Exigeix arribar a un segon llindar per confirmar veu
+   --limita-soroll  Actualitza el soroll nomes amb blocs propers al soroll estimat
+   --zcr=HZ  Llindar de ZCR [default: 3000]
+   --rebaixa-zcr=DB  Rebaixa de potencia per al rescat ZCR [default: 2]
+   --pujada=DB  Increment per al llindar de confirmacio [default: 3]
+   --espera=N  Maxim de blocs per confirmar veu [default: 25]
+   --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]
    -v, --verbose  Show debug information
    -h, --help     Show this screen
    --version      Show the version of the project

@@ -1,0 +1,10 @@
+OK: 8000 Hz: el ZCR rescata veu fluixa, però no energia insuficient ni ZCR baix.
+OK: 8000 Hz: confirmació alta, límit d’espera i rebuig d’un pic curt.
+OK: 8000 Hz: el límit impedeix incorporar blocs massa alts al soroll.
+OK: 16000 Hz: el ZCR rescata veu fluixa, però no energia insuficient ni ZCR baix.
+OK: 16000 Hz: confirmació alta, límit d’espera i rebuig d’un pic curt.
+OK: 16000 Hz: el límit impedeix incorporar blocs massa alts al soroll.
+OK: 48000 Hz: el ZCR rescata veu fluixa, però no energia insuficient ni ZCR baix.
+OK: 48000 Hz: confirmació alta, límit d’espera i rebuig d’un pic curt.
+OK: 48000 Hz: el límit impedeix incorporar blocs massa alts al soroll.
+OK: opcions invàlides rebutjades.

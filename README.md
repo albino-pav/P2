@@ -1,38 +1,48 @@
 # P2 — Prova de totes les idees juntes
 
-Jordi Albareda Fortuny · Grup 41 · Lloc XX
+Jordi Albareda Fortuny · Grup 41 · Lloc 05
 
-Aquesta branca és `jordi-albareda-combinacions`. Aquí provo les idees antigues i les noves, juntes i per separat. La versió d’entrega continua a `jordi-albareda`.
+Aquesta és la branca `jordi-albareda-combinacions`. Aquí provo les idees del detector juntes i per separat. La versió d’entrega continua a `jordi-albareda`.
 
-Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](IDEES.md). També hi ha la [matriu de les 256 combinacions](IDEES.md#matriu-de-totes-les-combinacions).
+Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](IDEES.md). També hi ha la [matriu completa](IDEES.md#matriu-de-totes-les-combinacions).
 
-## Què he provat
+## Què he afegit
 
-- Esperar abans de confirmar la veu.
-- Esperar abans de confirmar el silenci.
-- Anar actualitzant el soroll.
-- Fer servir dos llindars, és a dir, histèresi.
-- Tornar al primer bloc pendent quan confirmo un canvi.
-- Treure el bloc inicial més fort.
-- Permetre una baixada curta mentre confirmo veu.
-- Treure la mitjana abans de calcular la potència.
+A més de les vuit idees que ja havia provat, ara hi ha tres opcions més:
 
-També canvio el temps inicial, el marge, les duracions mínimes, alfa i la diferència entre llindars.
+| Opció | Què prova | D’on surt |
+|---|---|---|
+| `--rescat-zcr` | Acceptar veu una mica més fluixa si el ZCR és alt i hi ha prou potència | [Pegueroles–Riera, PR #4](https://github.com/albino-pav/P2/pull/4) |
+| `--confirma-alt` | Exigir que la veu arribi a un llindar alt abans d’un temps màxim | [Arbelo–Moreno, PR #7](https://github.com/albino-pav/P2/pull/7) i [Galvan–Fernandez, PR #3](https://github.com/albino-pav/P2/pull/3) |
+| `--limita-soroll` | Actualitzar el soroll només amb blocs prou propers al soroll estimat | [Pegueroles–Riera](https://github.com/falgarspegueroles/P2/blob/Pegueroles-Riera/src/vad.c) |
 
-Hi ha 256 combinacions d’interruptors. Les provo amb quatre grups de valors i faig una cerca adaptativa per a cadascuna, a partir de tres inicis genèrics. Els perfils històrics només es calculen per comparar. Quan un canvi millora el TOTAL, hi moc el centre. Quan s’encalla, redueixo el pas. No afegeixo valors específics ni importo els guanyadors anteriors com a punt de partida.
+He adaptat les idees al meu detector. Per exemple, arribar al llindar alt no permet saltar-se la duració mínima de veu. Les tres opcions estan apagades per defecte.
+
+Les altres vuit idees continuen a les proves: esperes de veu i silenci, seguiment del soroll, histèresi, retorn al primer bloc pendent, treure el pic inicial, permetre una baixada i treure la mitjana del bloc.
+
+## Com ho busco
+
+Ara hi ha **2.048 combinacions**. Per a cadascuna faig tres inicis amb valors normals. Si millora el TOTAL, hi moc el centre. Si no millora, redueixo el pas. També ajusto els valors de les tres idees noves.
+
+Els perfils històrics només serveixen per comparar. No els faig servir per orientar la cerca.
 
 ## Resultat
 
 | Versió | TOTAL |
 |---|---:|
-| Base actual, també per defecte en aquesta branca | 95,829 % |
-| Totes les idees activades amb els mateixos valors | 95,223 % |
-| Millor de la cerca anterior | 95,871 % |
-| Millor de la cerca adaptativa | **95,891 %** |
+| Base d’entrega | 95,829 % |
+| Millor de l’estudi amb vuit idees | 95,891 % |
+| Millor de l’estudi amb onze idees | **96,186 %** |
 
-La millor combinació manté les esperes, el seguiment del soroll i el retorn al primer bloc pendent. També activa histèresi i permet una baixada. No treu el pic inicial ni la mitjana.
+La millor configuració combina **rescat ZCR i confirmació amb llindar alt** amb les esperes de veu i silenci, el seguiment del soroll, una baixada permesa, treure la mitjana i tornar al primer bloc pendent. La histèresi, treure el pic inicial i el límit d’actualització del soroll queden apagats.
 
-La cerca adaptativa arriba a 95,891 %. Són uns 0,020 punts més que la cerca anterior i 0,062 punts més que la base d’entrega. Guardo aquesta prova separada; els valors per defecte continuen sent els de la base.
+Els valors trobats són 100 ms inicials, 80 ms de veu mínima, 160 ms de silenci mínim, marge de **5,875 dB** i alfa d’aproximadament **0,005233**. El ZCR es compara amb **2.500 Hz**, amb una rebaixa de potència de **2,125 dB**. La confirmació exigeix arribar **7 dB** per sobre del llindar d’entrada abans de **250 ms**.
+
+Guanya uns **0,295 punts** respecte de l’estudi amb vuit idees i **0,357 punts** respecte de la base d’entrega. Les puntuacions són de desenvolupament, amb `db.v4`.
+
+El límit d’actualització del soroll també s’ha provat: la millor configuració que l’activa arriba a **96,182 %**. És molt propera a la guanyadora. No vol dir que aquesta idea sigui dolenta; només que aquí el millor resultat trobat la deixa apagada.
+
+Els valors per defecte continuen sent els de la base. La configuració guanyadora queda com a prova en aquesta branca.
 
 ## Compilar i executar
 
@@ -44,21 +54,24 @@ ninja -C bin
 bin/vad -i pav_41XX1.wav -o prova.vad
 ```
 
-Sense opcions noves, el resultat continua sent el de la base. Per provar la millor configuració trobada:
+Per activar les tres idees noves a mà:
 
 ```sh
-bin/vad -i pav_41XX1.wav -o prova.vad --veu=7 -l 7.885 --alfa=0.0040213789 --histeresi=2.09375 --permet-baixada
-```
-
-Per provar les idees a mà:
-
-```sh
+bin/vad -i pav_41XX1.wav -o prova.vad --rescat-zcr --confirma-alt --limita-soroll
 bin/vad --help
-bin/vad -i pav_41XX1.wav -o prova.vad --histeresi=1 --permet-baixada
-bin/vad -i pav_41XX1.wav -o prova.vad --veu=1 --silenci=1 --alfa=0
 ```
 
-`--veu=1` i `--silenci=1` volen dir sense espera. `--alfa=0` vol dir soroll fix. Els nombres de `--inici`, `--veu` i `--silenci` són blocs de 10 ms. `--sense-retroces` evita tornar al primer bloc pendent.
+Per repetir la millor configuració trobada:
+
+```sh
+bin/vad -i pav_41XX1.wav -o prova.vad \
+    --inici=10 --veu=8 --silenci=16 -l5.875 \
+    --alfa=0.0052329911 --histeresi=0 --permet-baixada --treu-dc \
+    --rescat-zcr --confirma-alt --zcr=2500 --rebaixa-zcr=2.125 \
+    --pujada=7 --espera=25 --marge-soroll=2
+```
+
+Els nombres d’aquesta última ordre són el resultat de la cerca.
 
 ## Repetir les proves
 
@@ -67,29 +80,28 @@ Necessito també un compilador C, Python, NumPy i SoundFile. La base de dades no
 ```sh
 python3 scripts/prova_combinacions.py /cami/a/db.v4 --verifica
 python3 scripts/comprova_metodes.py
+python3 scripts/comprova_metodes_nous.py
 ```
 
-Si `db.v4` és dins de P2, no cal passar el camí. La primera ordre calcula les combinacions i comprova 27 configuracions amb el programa normal i el Perl. La segona comprova casos petits a 8, 16 i 48 kHz.
+Si `db.v4` és dins de P2, no cal passar el camí. La primera ordre prova les combinacions i comprova les millors i els controls amb el programa normal i el Perl. Les altres dues comproven casos petits a 8, 16 i 48 kHz.
 
-Per tornar a posar la matriu a `IDEES.md` a partir dels CSV, sense repetir les proves:
+Per regenerar la matriu a partir dels CSV, sense repetir les proves:
 
 ```sh
 python3 scripts/actualitza_matriu.py
 ```
 
-La cerca comença amb passos grans i els va reduint segons els resultats. En total són 46.888 configuracions diferents. Els 768 inicis han acabat pel pas mínim i la falta de millora, sense esgotar el límit de voltes. El detall és a [IDEES.md](IDEES.md#com-es-va-acostant-als-valors-bons).
-
 ## Fitxers de resultats
 
 - [Combinacions amb valors fixos](resultats/combinacions/combinacions_amb_valors_fixos.csv).
 - [Parelles on només canvia una idea](resultats/combinacions/canvis_per_parelles.csv).
-- [Resultats de la cerca anterior](resultats/combinacions/combinacions_afinament_anterior.csv).
-- [Millor ajust trobat per a cada combinació](resultats/combinacions/combinacions_ajustades.csv).
-- [Recorregut de la cerca adaptativa](resultats/combinacions/recorregut_cerca.csv).
+- [Estudi anterior amb vuit idees](resultats/combinacions/combinacions_vuit_metodes.csv).
+- [Millor ajust de cada combinació nova](resultats/combinacions/combinacions_ajustades.csv).
+- [Recorregut de la cerca](resultats/combinacions/recorregut_cerca.csv).
 - [Verificació amb el programa normal i el Perl](resultats/combinacions/verificacio.csv).
 - [Avaluació completa del millor resultat](resultats/combinacions/avaluacio_millor.txt).
-- [Comprovacions amb àudios petits](resultats/combinacions/comprovacions.txt).
+- [Comprovacions dels mètodes nous](resultats/combinacions/comprovacions_nous.txt).
 
-La gravació personal no es fa servir per triar la millor combinació. La puntuació de la taula és sobre les 115 gravacions de `db.v4`. Aquests àudios ja s’havien fet servir per ajustar la base; caldrien àudios nous per saber com funciona fora d’aquest conjunt.
+La gravació personal no es fa servir per triar la millor combinació. Les puntuacions són sobre les 115 gravacions de `db.v4`, que ja havia fet servir per ajustar la base. Caldrien àudios nous per veure com funciona fora d’aquest conjunt.
 
-Els altres resultats i figures ja venien de les proves anteriors. No són els resultats d’aquest estudi.
+Els altres resultats i figures es conserven com a historial de les proves anteriors.
