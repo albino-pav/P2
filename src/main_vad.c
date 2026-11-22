@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
   input_wav  = args.input_wav;
   output_vad = args.output_vad;
   output_wav = args.output_wav;
+  float llindar=atof(args.llindar);
 
   if (input_wav == 0 || output_vad == 0) {
     fprintf(stderr, "%s\n", args.usage_pattern);
@@ -78,25 +79,49 @@ int main(int argc, char *argv[]) {
     if  ((n_read = sf_read_float(sndfile_in, buffer, frame_size)) != frame_size) break;
 
     if (sndfile_out != 0) {
-      /* TODO: copy all the samples into sndfile_out */
-    }
+      /* Copy original audio samples */
+          sf_write_float(sndfile_out, buffer, frame_size);
 
-    state = vad(vad_data, buffer);
+        }
+
+    state = vad(vad_data, buffer, llindar);
     if (verbose & DEBUG_VAD) vad_show_state(vad_data, stdout);
 
     /* TODO: print only SILENCE and VOICE labels */
     /* As it is, it prints UNDEF segments but is should be merge to the proper value */
-    if (state != last_state) {
-      if (t != last_t)
-        fprintf(vadfile, "%.5f\t%.5f\t%s\n", last_t * frame_duration, t * frame_duration, state2str(last_state));
-      last_state = state;
-      last_t = t;
+    
+if (state == ST_UNDEF) {
+    // La decisión todavía está pendiente.
+} else if (state != last_state) {
+    int change_t = t;
+
+    // Si confirmamos silencio, retrocedemos
+    // hasta la primera trama de baja potencia.
+    if (state == ST_SILENCE &&
+        last_state == ST_VOICE &&
+        t >= 19) {
+        change_t = t - 3;
     }
 
-    if (sndfile_out != 0) {
-      /* TODO: go back and write zeros in silence segments */
+    if (last_state != ST_UNDEF && change_t > last_t) {
+        fprintf(vadfile, "%.5f\t%.5f\t%s\n",
+                last_t * frame_duration,
+                change_t * frame_duration,
+                state2str(last_state));
     }
-  }
+
+    last_state = state;
+    last_t = change_t;
+}
+
+
+    if (sndfile_out != 0 && state == ST_SILENCE) {
+      /* TODO: go back and write zeros in silence segments */
+        sf_seek(sndfile_out, t * frame_size, SEEK_SET);
+        sf_write_float(sndfile_out, buffer_zeros, frame_size);
+        sf_seek(sndfile_out, 0, SEEK_END);
+      }
+    }
 
   state = vad_close(vad_data);
   /* TODO: what do you want to print, for last frames? */

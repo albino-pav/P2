@@ -132,6 +132,10 @@ Ejercicios
 
 ### Etiquetado manual de los segmentos de voz y silencio
 
+
+
+**Etiquetado manual de voz y silencio**
+
 - Grabe una señal de voz en la que haya distintos segmentos de voz y silencio. La señal debe ser de un
   solo canal (monofónica), grabada con una frecuencia de muestreo de 16 kHz y codificada con PCM lineal
   de 16 bits.
@@ -150,14 +154,35 @@ Ejercicios
   continuación, una captura de `wavesurfer` en la que se vea con claridad la señal temporal, el contorno de
   potencia y la tasa de cruces por cero, junto con el etiquetado manual de los segmentos.
 
+
+
+**Etiquetado manual de voz y silencio**
+
+En la siguiente figura se muestra la señal temporal, el etiquetado manual de voz y silencio, el contorno de potencia y la tasa de cruces por cero.
+
+![Etiquetado manual](img/etiquetado_manual.png)
+  
+
 - A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
 
   * Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
     estar seguros de que un segmento de señal se corresponde con voz.
 
+
+**Respuesta:** Observando el contorno de potencia, el nivel durante los silencios se encuentra aproximadamente entre 20 y 30 dB, mientras que durante la voz alcanza valores de 45 a 65 dB. Por tanto, consideramos adecuado un incremento de unos **20-25 dB** respecto al nivel de silencio para identificar con bastante seguridad la presencia de voz.
+
+
+
   * Duración mínima razonable de los segmentos de voz y silencio.
 
+
+**Respuesta:** Consideramos razonable una duración mínima de aproximadamente **100 ms para los segmentos de voz** y **150-200 ms para los segmentos de silencio**. De esta manera evitamos detectar pequeñas fluctuaciones de potencia como cambios reales entre voz y silencio, consiguiendo una segmentación más estable.
+
+
   * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
+
+
+**Respuesta:** La tasa de cruces por cero (ZCR) permite observar diferencias entre los distintos segmentos de la señal. En general, los sonidos sonoros presentan una ZCR más baja debido a su periodicidad, mientras que los sonidos sordos pueden presentar valores más elevados. Sin embargo, la ZCR por sí sola no permite distinguir siempre entre voz y silencio, por lo que conviene combinarla con el nivel de potencia para mejorar la detección.
 
 
 ### Desarrollo del detector de actividad vocal
@@ -175,6 +200,51 @@ Ejercicios
   el resumen).
 
 
+**Comparación entre etiquetado manual y detección automática**
+
+En la siguiente figura se muestra la señal temporal, el etiquetado manual (`.lab`) y el etiquetado automático generado por el detector VAD (`.vad`).
+
+![Comparación VAD](img/comparacion_vad.png)
+
+
+**Respuesta:** En general, la detección automática sigue bastante bien el etiquetado manual, especialmente en los segmentos de voz más claros. Las principales discrepancias aparecen en transiciones entre voz y silencio y en segmentos de baja energía, donde el detector puede clasificar como voz pequeñas fluctuaciones o ruido residual. También puede ocurrir que algunos fragmentos cortos de silencio dentro de una palabra se detecten como silencio cuando manualmente se consideran parte del segmento de voz.
+
+
+**Resultados finales sobre la base de datos `db.v4`**
+
+Después de optimizar los parámetros del detector VAD,
+hemos obtenido los siguientes resultados:
+
+- **Recall V:** 97.93 %
+- **Precision V:** 82.71 %
+- **F-score V (2):** 94.45 %
+
+- **Recall S:** 68.06 %
+- **Precision S:** 95.47 %
+- **F-score S (1/2):** 88.35 %
+
+- **TOTAL:** 91.351 %
+
+#### Optimización del detector VAD
+
+Para mejorar el rendimiento del detector, hemos realizado diferentes pruebas modificando los parámetros del algoritmo y evaluando los resultados sobre la base de datos `db.v4`.
+
+Los principales parámetros analizados han sido:
+
+- **Duración mínima del silencio:** probamos valores de 15, 20, 25 y 30 tramas. Finalmente, seleccionamos 20 tramas (200 ms), ya que ofrecían buenos resultados y evitaban detectar pausas demasiado breves.
+
+- **Margen adaptativo de potencia:** probamos diferentes valores y observamos que reducirlo de 15 dB a 11 dB mejoraba la detección global.
+
+- **Umbral de potencia (`llindar`):** probamos diferentes umbrales y seleccionamos -42 dB, que proporcionó los mejores resultados entre los valores evaluados.
+
+- **Actualización de la potencia del ruido:** comparamos diferentes factores de suavizado y mantuvimos 0.95 para la estimación anterior y 0.05 para la potencia actual.
+
+Con la configuración inicial obtuvimos un resultado global del **90.476 %**, mientras que después de la optimización alcanzamos el **91.351 %**, lo que supone una mejora de **0.875 puntos porcentuales**.
+
+La configuración final utiliza un margen adaptativo de 11 dB, 20 tramas para confirmar el silencio, un umbral de -42 dB y un factor de actualización del ruido de 0.95/0.05.
+
+
+
 ### Trabajos de ampliación
 
 #### Cancelación del ruido en los segmentos de silencio
@@ -183,10 +253,34 @@ Ejercicios
   la que se vea con claridad la señal antes y después de la cancelación (puede que `wavesurfer` no sea la
   mejor opción para esto, ya que no es capaz de visualizar varias señales al mismo tiempo).
 
+
+**Cancelación del ruido en los segmentos de silencio**
+
+Se ha implementado una función que permite generar un nuevo archivo WAV a partir de la señal original, utilizando la opción `-w` del programa.
+
+El objetivo es conservar las muestras correspondientes a los segmentos de voz y sustituir por ceros las muestras clasificadas como silencio por el detector VAD.
+
+Para realizar una primera prueba, hemos ejecutado:
+
+```bash
+./bin/vad -i audioP2_16k.wav -o prueba_ampliacion.vad -w audio_sin_silencios.wav -l -42
+```
+
+
 #### Gestión de las opciones del programa usando `docopt_c`
 
 - Si ha usado `docopt_c` para realizar la gestión de las opciones y argumentos del programa `vad`, inserte
   una captura de pantalla en la que se vea el mensaje de ayuda del programa.
+
+**Gestión de las opciones del programa con `docopt_c`**
+
+Se ha utilizado la biblioteca `docopt_c` para gestionar los argumentos y opciones del detector VAD.
+
+Mediante el comando `./bin/vad --help` podemos visualizar las distintas opciones disponibles, como el archivo de entrada (`-i`), el archivo de salida (`-o`), la generación de un audio sin silencios (`-w`) y la configuración del umbral de decisión (`-l`).
+
+En la siguiente captura se muestra el mensaje de ayuda generado por el programa.
+
+![Ayuda del programa VAD](img/ayuda_vad.png)
 
 
 ### Contribuciones adicionales y/o comentarios acerca de la práctica
