@@ -48,8 +48,8 @@ int main(int argc, char *argv[]) {
     if (!read_number(args.zcr, &zcr_limit) || !read_number(args.rebaixa_zcr, &discount) ||
         !read_number(args.pujada, &boost) || !read_number(args.marge_soroll, &update_margin) ||
         !read_frames(args.espera, &max_wait) || zcr_limit <= 0 || discount < 0 || boost <= 0 ||
-        update_margin < 0 || (args.rescat_zcr && discount >= margin) ||
-        (args.confirma_alt && max_wait < min_voice)) {
+        update_margin < 0 || (!args.sense_zcr && discount >= margin) ||
+        (!args.sense_confirmacio && max_wait < min_voice)) {
         fprintf(stderr, "Revisa ZCR, rebaixa, pujada, espera i marge de soroll.\n");
         return 1;
     }
@@ -58,6 +58,12 @@ int main(int argc, char *argv[]) {
         !read_number(args.rang_soroll, &voice_range) || voice_range <= 0 ||
         !read_number(args.frame_ms, &frame_ms) || frame_ms < 2 || frame_ms > 120) {
         fprintf(stderr, "Revisa el factor de baixada, el rang i la durada del bloc.\n");
+        return 1;
+    }
+    if ((args.permet_baixada && args.sense_baixada) || (args.treu_dc && args.sense_dc) ||
+        (args.rescat_zcr && args.sense_zcr) || (args.confirma_alt && args.sense_confirmacio) ||
+        (args.soroll_asimetric && args.soroll_simetric) || (args.terra_soroll && args.sense_terra)) {
+        fprintf(stderr, "No es pot activar i desactivar la mateixa opcio alhora.\n");
         return 1;
     }
     if (args.input_wav == NULL || args.output_vad == NULL) {
@@ -93,8 +99,8 @@ int main(int argc, char *argv[]) {
         sf_close(audio);
         return 1;
     }
-    data->asymmetric_noise = args.soroll_asimetric;
-    data->floor_noise = args.terra_soroll;
+    data->asymmetric_noise = !args.soroll_simetric;
+    data->floor_noise = !args.sense_terra;
     data->direct_voice = args.entrada_directa;
     data->down_factor = down_factor;
     data->voice_range = voice_range;
@@ -106,11 +112,11 @@ int main(int argc, char *argv[]) {
     data->noise_alpha = alpha;
     data->silence_gap = gap;
     data->trim_initial = args.treu_pic;
-    data->allow_dip = args.permet_baixada;
-    data->remove_dc = args.treu_dc;
+    data->allow_dip = !args.sense_baixada;
+    data->remove_dc = !args.sense_dc;
     data->backdate = !args.sense_retroces;
-    data->rescue_zcr = args.rescat_zcr;
-    data->confirm_high = args.confirma_alt;
+    data->rescue_zcr = !args.sense_zcr;
+    data->confirm_high = !args.sense_confirmacio;
     data->guard_noise = args.limita_soroll;
     data->zcr_threshold = zcr_limit;
     data->zcr_discount = discount;

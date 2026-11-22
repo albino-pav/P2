@@ -3,12 +3,12 @@
 #include "vad.h"
 #include "pav_analysis.h"
 
-// Per defecte treballo amb blocs de 10 ms. Els marges són en dB.
-const int INIT_FRAMES = 9;
-const int MIN_VOICE = 8;
-const int MIN_SILENCE = 17;
-const float MARGIN_DB = 5.94f;
-const float NOISE_ALPHA = 0.00615f;
+// Per defecte treballo amb blocs de 20 ms. Els marges són en dB.
+const int INIT_FRAMES = 1;
+const int MIN_VOICE = 5;
+const int MIN_SILENCE = 8;
+const float MARGIN_DB = 7.0f;
+const float NOISE_ALPHA = 0.0023082305f;
 
 const char *state2str(VAD_STATE state) {
     const char *names[] = {"UNDEF", "S", "V", "INIT", "MAYBE_V", "MAYBE_S"};
@@ -21,7 +21,7 @@ VAD_DATA *vad_open(float rate) {
     if (data == NULL) return NULL;
     data->state = ST_INIT;
     data->sampling_rate = rate;
-    data->frame_length = (unsigned int) (rate * 0.010);
+    data->frame_length = (unsigned int) (rate * 0.020);
     data->initial_frames = 0;
     data->initial_max = 0.0f;
     data->initial_sum = 0.0f;
@@ -33,21 +33,23 @@ VAD_DATA *vad_open(float rate) {
     data->noise_alpha = NOISE_ALPHA;
     data->silence_gap = 0.0f;
     data->trim_initial = 0;
-    data->allow_dip = 0;
-    data->remove_dc = 0;
+    data->allow_dip = 1;
+    data->remove_dc = 1;
     data->backdate = 1;
-    data->rescue_zcr = data->confirm_high = data->guard_noise = 0;
-    data->zcr_threshold = 3000.0f;
-    data->zcr_discount = 2.0f;
-    data->confirm_boost = 3.0f;
+    data->rescue_zcr = data->confirm_high = 1;
+    data->guard_noise = 0;
+    data->zcr_threshold = 1750.0f;
+    data->zcr_discount = 3.625f;
+    data->confirm_boost = 6.0f;
     data->noise_update_margin = 2.0f;
-    data->max_wait = 25;
+    data->max_wait = 15;
     data->elapsed = data->high_seen = 0;
-    data->asymmetric_noise = data->floor_noise = data->direct_voice = 0;
-    data->down_factor = 4.0f;
-    data->voice_range = 55.0f;
+    data->asymmetric_noise = data->floor_noise = 1;
+    data->direct_voice = 0;
+    data->down_factor = 9.25f;
+    data->voice_range = 41.25f;
     data->voice_level = -80.0f;
-    data->voice_alpha = 0.1f;
+    data->voice_alpha = 1.0f - powf(0.9f, 2.0f);
     data->voice_dips = 0;
     data->count = 0;
     data->last_feature = -100.0f;

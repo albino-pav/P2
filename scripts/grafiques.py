@@ -7,19 +7,19 @@ import numpy as np
 import soundfile as sf
 
 carpeta = Path(__file__).resolve().parent.parent
-audio = carpeta / 'pav_41XX1.wav'
+audio = carpeta / 'pav_4151.wav'
 img = carpeta / 'img'
 resultats = carpeta / 'resultats'
 img.mkdir(exist_ok=True)
 resultats.mkdir(exist_ok=True)
 x, fm = sf.read(audio)
-N = int(fm * 0.010)
+N = int(fm * 0.020)
 blocs = len(x) // N
 potencia = np.zeros(blocs)
 zcr = np.zeros(blocs)
 for i in range(blocs):
     tram = x[i * N:(i + 1) * N]
-    mitjana = np.mean(tram * tram)
+    mitjana = np.mean((tram - np.mean(tram)) ** 2)
     potencia[i] = 10 * np.log10(max(mitjana, 1e-10))
     canvis = np.count_nonzero((tram[1:] < 0) != (tram[:-1] < 0))
     zcr[i] = fm * canvis / (2 * (N - 1))
@@ -77,7 +77,7 @@ primer_silenci = int(manual[0][1] * fm)
 mesures = {
     'durada': len(x) / fm,
     'soroll_inicial_db': float(10 * np.log10(np.mean(x[:primer_silenci] ** 2))),
-    'referencia_90ms_db': float(10 * np.log10(np.mean(x[:int(0.09 * fm)] ** 2))),
+    'referencia_20ms_db': float(10 * np.log10(np.mean((x[:N] - np.mean(x[:N])) ** 2))),
     'zcr_silenci_mitja': float(np.mean(zcr[temps < manual[0][1]])),
     'zcr_maxim': float(np.max(zcr))
 }

@@ -1,0 +1,7 @@
+OK: compilació neta sense avisos.
+OK: 115 sortides sense opcions addicionals idèntiques a la configuració guanyadora de les proves.
+OK: etiquetes S/V contínues i durada real de les 115 gravacions.
+OK: TOTAL amb els valors per defecte: 96,910 %.
+OK: opcions per desactivar les millores i rebuig d’opcions contradictòries.
+OK: la gravació amb el nom d’entrega conserva totes les mostres i les marques manuals.
+OK: enllaços locals i figures del README presents.

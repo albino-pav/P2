@@ -1,7 +1,7 @@
 {
   "durada": 9.536,
   "soroll_inicial_db": -52.39620922553138,
-  "referencia_90ms_db": -54.27266379270204,
-  "zcr_silenci_mitja": 346.1349747981623,
-  "zcr_maxim": 4377.358490566037
+  "referencia_20ms_db": -57.588052851536716,
+  "zcr_silenci_mitja": 345.3649798477385,
+  "zcr_maxim": 4313.479623824452
 }

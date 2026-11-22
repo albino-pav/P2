@@ -2,7 +2,7 @@
 
 Aquí he anat apuntant les idees del detector i els resultats de les proves. Algunes ja venien de la pràctica i altres les he afegit després.
 
-El codi de les combinacions és a [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/jordi-albareda-combinacions). La versió d’entrega continua a `jordi-albareda`.
+El codi de les combinacions és a [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/jordi-albareda-combinacions). La branca d’entrega és `albareda-lopez`. Hi hem posat la millor configuració de les proves pendents com a predeterminada. Les proves d’aquest fitxer i les referències als valors per defecte corresponen a les branques d’experimentació.
 
 ## D’on surt cada idea
 

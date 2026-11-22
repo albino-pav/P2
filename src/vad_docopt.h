@@ -18,8 +18,14 @@ typedef struct {
     int limita_soroll;
     int permet_baixada;
     int rescat_zcr;
+    int sense_baixada;
+    int sense_confirmacio;
+    int sense_dc;
     int sense_retroces;
+    int sense_terra;
+    int sense_zcr;
     int soroll_asimetric;
+    int soroll_simetric;
     int terra_soroll;
     int treu_dc;
     int treu_pic;
@@ -58,30 +64,36 @@ const char help_message[] =
 "Options:\n"
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
-"   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 5.94]\n"
-"   --inici=N  Blocs per calcular el soroll inicial [default: 9]\n"
-"   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 8]\n"
-"   --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 17]\n"
-"   --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.00615]\n"
+"   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 7]\n"
+"   --inici=N  Blocs per calcular el soroll inicial [default: 1]\n"
+"   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 5]\n"
+"   --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 8]\n"
+"   --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.0023082305]\n"
 "   --histeresi=DB  Diferencia entre entrada i sortida de veu [default: 0]\n"
 "   --treu-pic  Deixa fora el bloc inicial mes fort\n"
-"   --permet-baixada  Permet un bloc baix mentre confirma veu\n"
-"   --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia\n"
+"   --permet-baixada  Permet un bloc baix mentre confirma veu (activat per defecte)\n"
+"   --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia (activat per defecte)\n"
 "   --sense-retroces  Posa el canvi quan el confirma, sense tornar enrere\n"
-"   --rescat-zcr  Permet veu fluixa amb ZCR alt i potencia suficient\n"
-"   --confirma-alt  Exigeix arribar a un segon llindar per confirmar veu\n"
+"   --rescat-zcr  Permet veu fluixa amb ZCR alt i potencia suficient (activat per defecte)\n"
+"   --confirma-alt  Exigeix arribar a un segon llindar per confirmar veu (activat per defecte)\n"
 "   --limita-soroll  Actualitza el soroll nomes amb blocs propers al soroll estimat\n"
-"   --zcr=HZ  Llindar de ZCR [default: 3000]\n"
-"   --rebaixa-zcr=DB  Rebaixa de potencia per al rescat ZCR [default: 2]\n"
-"   --pujada=DB  Increment per al llindar de confirmacio [default: 3]\n"
-"   --espera=N  Maxim de blocs per confirmar veu [default: 25]\n"
+"   --zcr=HZ  Llindar de ZCR [default: 1750]\n"
+"   --rebaixa-zcr=DB  Rebaixa de potencia per al rescat ZCR [default: 3.625]\n"
+"   --pujada=DB  Increment per al llindar de confirmacio [default: 6]\n"
+"   --espera=N  Maxim de blocs per confirmar veu [default: 15]\n"
 "   --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]\n"
-"   --soroll-asimetric  Adapta mes rapid el soroll quan baixa\n"
-"   --terra-soroll  Limita el soroll segons el nivell estimat de veu\n"
+"   --soroll-asimetric  Adapta mes rapid el soroll quan baixa (activat per defecte)\n"
+"   --terra-soroll  Limita el soroll segons el nivell estimat de veu (activat per defecte)\n"
 "   --entrada-directa  Un bloc fort pot confirmar veu sense esperar\n"
-"   --factor-baixada=X  Factor extra per seguir baixades de soroll [default: 4]\n"
-"   --rang-soroll=DB  Diferencia maxima entre veu i soroll [default: 55]\n"
-"   --frame-ms=MS  Durada del bloc en ms [default: 10]\n"
+"   --factor-baixada=X  Factor extra per seguir baixades de soroll [default: 9.25]\n"
+"   --rang-soroll=DB  Diferencia maxima entre veu i soroll [default: 41.25]\n"
+"   --frame-ms=MS  Durada del bloc en ms [default: 20]\n"
+"   --sense-baixada  Desactiva la baixada curta permesa\n"
+"   --sense-dc  Desactiva la resta de la mitjana\n"
+"   --sense-zcr  Desactiva el rescat ZCR\n"
+"   --sense-confirmacio  Desactiva el llindar alt de confirmacio\n"
+"   --soroll-simetric  Fa servir el mateix ritme en pujades i baixades\n"
+"   --sense-terra  Desactiva el limit segons el nivell de veu\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -324,10 +336,22 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             args->permet_baixada = option->value;
         } else if (!strcmp(option->olong, "--rescat-zcr")) {
             args->rescat_zcr = option->value;
+        } else if (!strcmp(option->olong, "--sense-baixada")) {
+            args->sense_baixada = option->value;
+        } else if (!strcmp(option->olong, "--sense-confirmacio")) {
+            args->sense_confirmacio = option->value;
+        } else if (!strcmp(option->olong, "--sense-dc")) {
+            args->sense_dc = option->value;
         } else if (!strcmp(option->olong, "--sense-retroces")) {
             args->sense_retroces = option->value;
+        } else if (!strcmp(option->olong, "--sense-terra")) {
+            args->sense_terra = option->value;
+        } else if (!strcmp(option->olong, "--sense-zcr")) {
+            args->sense_zcr = option->value;
         } else if (!strcmp(option->olong, "--soroll-asimetric")) {
             args->soroll_asimetric = option->value;
+        } else if (!strcmp(option->olong, "--soroll-simetric")) {
+            args->soroll_simetric = option->value;
         } else if (!strcmp(option->olong, "--terra-soroll")) {
             args->terra_soroll = option->value;
         } else if (!strcmp(option->olong, "--treu-dc")) {
@@ -406,10 +430,10 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "25",
-        (char*) "4", (char*) "10", (char*) "0", (char*) "9", NULL, (char*)
-        "5.94", (char*) "2", NULL, (char*) "3", (char*) "55", (char*) "2",
-        (char*) "17", (char*) "8", (char*) "3000",
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*)
+        "0.0023082305", (char*) "15", (char*) "9.25", (char*) "20", (char*) "0",
+        (char*) "1", NULL, (char*) "7", (char*) "2", NULL, (char*) "6", (char*)
+        "41.25", (char*) "3.625", (char*) "8", (char*) "5", (char*) "1750",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -424,8 +448,14 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {NULL, "--limita-soroll", 0, 0, NULL},
         {NULL, "--permet-baixada", 0, 0, NULL},
         {NULL, "--rescat-zcr", 0, 0, NULL},
+        {NULL, "--sense-baixada", 0, 0, NULL},
+        {NULL, "--sense-confirmacio", 0, 0, NULL},
+        {NULL, "--sense-dc", 0, 0, NULL},
         {NULL, "--sense-retroces", 0, 0, NULL},
+        {NULL, "--sense-terra", 0, 0, NULL},
+        {NULL, "--sense-zcr", 0, 0, NULL},
         {NULL, "--soroll-asimetric", 0, 0, NULL},
+        {NULL, "--soroll-simetric", 0, 0, NULL},
         {NULL, "--terra-soroll", 0, 0, NULL},
         {NULL, "--treu-dc", 0, 0, NULL},
         {NULL, "--treu-pic", 0, 0, NULL},
@@ -448,7 +478,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {NULL, "--veu", 1, 0, NULL},
         {NULL, "--zcr", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 29, commands, arguments, options};
+    Elements elements = {0, 0, 35, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

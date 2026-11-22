@@ -7,12 +7,12 @@ set -o pipefail
 DIR_P2="$(cd "$(dirname "$0")/.." && pwd)"
 DB="$DIR_P2/db.v4"
 CMD="$DIR_P2/bin/vad"
-llindar="${1:-5.94}" # Faig servir el primer argument o el valor per defecte de 5,94 dB.
+llindar="${1:-7}" # Faig servir el primer argument o el valor per defecte de 7 dB.
 if [[ $# -gt 1 || ! "$llindar" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
     echo "Ús: $0 [marge_en_dB]" >&2 # Indico com passar el marge.
     exit 1
 fi
-OUT="$DIR_P2/resultats/db/llindar_$llindar" # Separo els fitxers de cada prova.
+OUT="$DIR_P2/resultats/db/entrega_$llindar" # Separo els fitxers de cada prova.
 
 # Comprovo que he compilat el programa abans d'avaluar-lo.
 if [[ ! -x "$CMD" ]]; then
@@ -49,4 +49,4 @@ if [[ $gravacions -eq 0 ]]; then
 fi
 
 # Comparo amb les etiquetes originals i deso el resultat complet.
-perl "$DIR_P2/scripts/vad_evaluation.pl" "$OUT"/*/*.lab | tee "$DIR_P2/resultats/evaluacio_llindar_$llindar.txt"
+perl "$DIR_P2/scripts/vad_evaluation.pl" "$OUT"/*/*.lab | tee "$DIR_P2/resultats/evaluacio_entrega.txt"
