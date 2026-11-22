@@ -190,7 +190,7 @@ La siguiente captura muestra la forma de onda, la potencia, la ZCR, las etiqueta
 
 **1. Incremento de potencia respecto al silencio inicial**
 
-En la gráfica se observa que los fragmentos de voz presentan, en general, una potencia claramente superior a la del silencio. Para identificar visualmente los segmentos de voz más evidentes, un incremento de varias decenas de dB permite distinguirlos del ruido de fondo, aunque los límites de algunos segmentos tienen una potencia menor.
+En la gráfica se observa que los fragmentos de voz presentan, en general, una potencia superior a la del silencio inicial. Como criterio de detección, considero adecuado un incremento de aproximadamente 9,5 dB respecto al nivel de referencia, valor seleccionado experimentalmente mediante la evaluación del detector. Este umbral permite detectar también fragmentos de voz de menor potencia, aunque puede producir falsas detecciones cuando el ruido supera dicho nivel.
 
 En una primera versión del detector se seleccionó un umbral de 5,1 dB, obteniendo una puntuación global del 90,845 % sobre `db.v4`. Posteriormente, al incorporar un mecanismo de confirmación temporal del silencio y optimizar sus parámetros, se seleccionó un umbral de 9,5 dB con un hangover de 100 ms. Esta configuración obtuvo un 93,933 % en la misma base de datos.
 
