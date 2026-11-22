@@ -18,6 +18,7 @@ typedef struct {
   float last_feature; /* for debuggin purposes */
   ///////////////////////////////////////////////////////////////
   float potencia_soroll;
+  unsigned int tramas_silencio;
   //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\//
 } VAD_DATA;
 

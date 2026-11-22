@@ -192,7 +192,7 @@ La siguiente captura muestra la forma de onda, la potencia, la ZCR, las etiqueta
 
 En la gráfica se observa que los fragmentos de voz presentan, en general, una potencia claramente superior a la del silencio. Para identificar visualmente los segmentos de voz más evidentes, un incremento de varias decenas de dB permite distinguirlos del ruido de fondo, aunque los límites de algunos segmentos tienen una potencia menor.
 
-Experimentalmente, el detector obtuvo su mejor puntuación global entre los umbrales probados en `db.v4` utilizando un incremento de **5,1 dB** respecto a la referencia inicial. Este umbral es más sensible, pero también puede producir falsas detecciones de voz durante el silencio.
+En una primera versión del detector se seleccionó un umbral de 5,1 dB, obteniendo una puntuación global del 90,845 % sobre `db.v4`. Posteriormente, al incorporar un mecanismo de confirmación temporal del silencio y optimizar sus parámetros, se seleccionó un umbral de 9,5 dB con un hangover de 100 ms. Esta configuración obtuvo un 93,933 % en la misma base de datos.
 
 **2. Duración mínima razonable de los segmentos de voz y silencio**
 
@@ -200,7 +200,7 @@ Dado que el análisis se realiza en tramas de 10 ms, se considera razonable prop
 
 No obstante, en la grabación etiquetada aparece una pausa real de aproximadamente 65 ms. Por tanto, utilizar duraciones mínimas demasiado elevadas podría eliminar pausas auténticas.
 
-Estos valores son una propuesta de mejora y no corresponden a un mecanismo de duración mínima implementado en el detector actual.
+En la versión final se ha implementado un mecanismo de hangover de 100 ms para confirmar el paso de voz a silencio. No se ha implementado una duración mínima equivalente para confirmar la entrada en voz. Los 50 ms planteados anteriormente eran una estimación inicial a partir de la señal, mientras que los 100 ms se seleccionaron después mediante pruebas experimentales sobre `db.v4`.
 
 **3. Conclusiones sobre la tasa de cruces por cero (ZCR)**
 
@@ -233,65 +233,68 @@ Por tanto, la ZCR es una característica complementaria a la potencia, pero no e
 
 **Implementación del detector de actividad vocal**
 
-Se ha implementado un VAD basado en la potencia de la señal, que procesa el audio en tramas de 10 ms.
+Se ha implementado un detector VAD basado en la potencia de la señal, trabajando con tramas de 10 ms. Para cada trama se calcula la potencia mediante `compute_power()` de `pav_analysis.c`, reutilizando las funciones desarrolladas en la P1.
 
-Para cada trama se calcula la potencia mediante la función `compute_power()` de `pav_analysis.c`, reutilizando el código desarrollado en la práctica P1.
+El detector utiliza tres estados principales:
 
-El detector utiliza una máquina de estados con tres estados principales:
+- `ST_INIT`: almacena la potencia de la primera trama como referencia inicial del ruido.
+- `ST_SILENCE`: permanece en silencio hasta que la potencia supera el umbral.
+- `ST_VOICE`: permanece en voz hasta confirmar que la potencia se ha mantenido por debajo del umbral durante un número determinado de tramas consecutivas.
 
-- `ST_INIT`: inicializa el detector y almacena la potencia de la primera trama como referencia del ruido de fondo.
-- `ST_SILENCE`: representa los segmentos de silencio. Se pasa al estado de voz cuando la potencia supera la referencia inicial más el umbral.
-- `ST_VOICE`: representa los segmentos de voz. Se vuelve al estado de silencio cuando la potencia cae por debajo del mismo umbral.
+Inicialmente se utilizaba un único umbral de potencia, sin ningún mecanismo para evitar cambios rápidos de estado.
 
-Las transiciones dependen de la condición:
+Posteriormente se añadió un mecanismo de *hangover*, mediante un contador de tramas consecutivas de baja potencia. Si la potencia vuelve a superar el umbral antes de alcanzar el número mínimo de tramas, el contador se reinicia y el detector permanece en voz.
 
-`potencia_actual > potencia_ruido_inicial + umbral`
+Se probaron diferentes duraciones de *hangover* y distintos umbrales sobre `db.v4`, utilizando como criterio la maximización de la puntuación `TOTAL`.
 
-Se ha utilizado un umbral relativo de **5,1 dB**, seleccionado experimentalmente tras evaluar distintos valores sobre `db.v4`. Este valor fue el que obtuvo la mayor puntuación `TOTAL` entre los umbrales ensayados de 4,0 a 6,0 dB, en pasos de 0,1 dB.
+La configuración final seleccionada fue:
 
-El detector implementado no incluye todavía mecanismos de suavizado temporal ni de actualización continua de la estimación de ruido.
+- **Umbral relativo:** 9,5 dB.
+- **Hangover:** 10 tramas consecutivas, equivalentes a 100 ms.
+
+Esta mejora reduce la fragmentación de los segmentos de voz provocada por caídas breves de potencia. Como contrapartida, también puede prolongar las detecciones de voz dentro de algunos intervalos de silencio.
 
 **Comparación entre el etiquetado manual y el automático**
 
-La siguiente imagen muestra la señal temporal de la grabación recortada, su potencia y ZCR, junto con el etiquetado manual y la detección automática:
+La siguiente captura muestra la señal temporal, la potencia, la ZCR, el etiquetado manual y la detección automática de la grabación recortada:
 
-![Comparación entre el etiquetado manual y automático](img/comparacion_vad.png)
+![Comparación entre etiquetado manual y detección automática](img/comparacion_vad.png)
 
-La detección automática reproduce correctamente los principales fragmentos de voz. Sin embargo, se observan discrepancias durante algunos intervalos de silencio, especialmente al comienzo de la grabación, donde aparecen cambios de estado que no corresponden a voz real.
+El detector identifica correctamente los principales fragmentos de voz, pero presenta algunas discrepancias durante los silencios. Estas se deben a fluctuaciones de potencia que pueden superar el umbral y al tiempo adicional que el algoritmo espera antes de pasar de voz a silencio.
 
-Estas falsas detecciones se deben a que el algoritmo utiliza únicamente un umbral de potencia. Por tanto, algunas fluctuaciones del ruido pueden superar el umbral y provocar transiciones incorrectas.
+También se observó que la grabación original comenzaba con un silencio de potencia anormalmente baja. Siguiendo la recomendación del enunciado, se recortó ese fragmento inicial antes de realizar el etiquetado y la evaluación definitiva.
 
-Además, se observó que la grabación original comenzaba con un silencio de potencia excepcionalmente baja. Al utilizar la primera trama como referencia, el detector clasificaba incorrectamente buena parte del silencio como voz.
+**Evaluación sobre la grabación propia**
 
-Siguiendo la recomendación del enunciado, se recortó ese fragmento inicial con WaveSurfer. Con el mismo umbral de 5,1 dB, la puntuación sobre la grabación pasó del **19,176 % al 92,857 %**.
+Con la nueva configuración de 9,5 dB y 100 ms de *hangover*, los resultados fueron:
 
-En la grabación recortada se obtuvieron los siguientes resultados:
+- Recall de voz: 100,00 %
+- Precisión de voz: 73,81 %
+- Recall de silencio: 64,31 %
+- Precisión de silencio: 100,00 %
+- **TOTAL: 91,674 %**
 
- Recall de voz:  100,00 % 
- Precisión de voz:  76,20 % 
- Recall de silencio:  68,59 % 
- Precisión de silencio:  100,00 % 
- TOTAL: 92,857 %
-
-Estos resultados indican que el detector identifica toda la voz del etiquetado manual, pero también clasifica algunos segmentos de silencio como voz.
+La primera versión del detector había obtenido un 92,857 % sobre esta grabación recortada. Por tanto, aunque la nueva configuración mejora los resultados globales sobre `db.v4`, empeora ligeramente la puntuación de esta grabación concreta.
 
 **Evaluación sobre la base de datos `db.v4`**
 
-Se ha evaluado el detector sobre la base de datos `db.v4` utilizando el script `vad_evaluation.pl`, con un umbral de 5,1 dB.
+Se ha evaluado la versión mejorada utilizando el script `vad_evaluation.pl`, con un umbral de 9,5 dB y un *hangover* de 100 ms.
 
-El resumen global obtenido es:
+El resumen global obtenido fue:
 
-Recall V: 94,25 % 
-Precision: V 89,35 % 
-F-score V: (2) 93,22 % 
-Recall S: 82,47 % 
-Precision S: 90,18 % 
-F-score S: (1/2) 88,53 % 
-TOTAL: 90,845 %
+- Recall V: 97,83 %
+- Precision V: 88,23 %
+- F-score V (2): 95,75 %
+- Recall S: 79,63 %
+- Precision S: 95,93 %
+- F-score S (1/2): 92,15 %
+- **TOTAL: 93,933 %**
 
-Los resultados muestran que el detector es más eficaz identificando voz que silencio. La principal limitación observada es la aparición de falsos positivos de voz durante intervalos silenciosos.
+La versión inicial obtenía un 90,845 %, por lo que la mejora conseguida es de **3,088 puntos porcentuales**.
 
-Como posible mejora futura se podrían incorporar duraciones mínimas de estado, histéresis entre los umbrales de entrada y salida de voz, o una estimación adaptativa del ruido de fondo. Estas mejoras no forman parte de la implementación actual.
+Los resultados muestran una mejora importante en la detección de voz, aunque el detector sigue teniendo dificultades para distinguir algunos intervalos silenciosos.
+
+Como posibles mejoras futuras podrían incorporarse histéresis entre los umbrales de entrada y salida de voz, una duración mínima para entrar en estado de voz o una estimación adaptativa del ruido. Estas funcionalidades no están implementadas en la versión actual.
 
 
 
@@ -314,7 +317,7 @@ Se ha utilizado la biblioteca `docopt_c` para gestionar las opciones y argumento
 
 El programa permite especificar el archivo de audio de entrada, el archivo de etiquetas de salida y el umbral de detección mediante argumentos de la línea de comandos.
 
-Se ha establecido un umbral predeterminado de 5,1 dB, seleccionado experimentalmente mediante la evaluación sobre `db.v4`. De esta forma, el detector puede ejecutarse sin indicar explícitamente el umbral.
+Se ha establecido un umbral predeterminado de 9,5 dB, seleccionado experimentalmente mediante la evaluación sobre `db.v4`. De esta forma, el detector puede ejecutarse sin indicar explícitamente el umbral.
 
 La siguiente captura muestra el mensaje de ayuda generado mediante `docopt_c`:
 
@@ -327,6 +330,14 @@ La siguiente captura muestra el mensaje de ayuda generado mediante `docopt_c`:
 
 - Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
   considere de interés de cara a su evaluación.
+
+Como contribución adicional se han realizado diferentes pruebas para optimizar los parámetros del detector de actividad vocal.
+
+Primero se estudió el efecto del umbral de potencia. Después se incorporó un mecanismo de *hangover* para evitar cambios de estado provocados por caídas breves de potencia.
+
+Se realizaron varios barridos de valores, combinando umbrales de potencia y duraciones de *hangover*. La mejor configuración entre las probadas fue de 9,5 dB y 100 ms, con una puntuación `TOTAL` del 93,933 % sobre `db.v4`.
+
+El proceso permitió comprobar que aumentar la duración del *hangover* mejora la detección de algunos fragmentos de voz, pero también puede aumentar la cantidad de silencio clasificado como voz. Por ello, fue necesario ajustar conjuntamente ambos parámetros.
 
 
 ### Antes de entregar la práctica

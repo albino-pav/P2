@@ -6,6 +6,7 @@
 #include "pav_analysis.h"
 
 const float FRAME_TIME = 10.0F; /* in ms. */
+#define MIN_SILENCE_FRAMES 10
 
 /* 
  * As the output state is only ST_VOICE, ST_SILENCE, or ST_UNDEF,
@@ -56,6 +57,7 @@ VAD_DATA * vad_open(float rate) {
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
   vad_data->frame_length = rate * FRAME_TIME * 1e-3;
+  vad_data->tramas_silencio = 0;
   return vad_data;
 }
 
@@ -97,13 +99,23 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x, float umbral) {
     break;
 
   case ST_SILENCE:
-    if (f.p > vad_data -> potencia_soroll + umbral)
+    if (f.p > vad_data->potencia_soroll + umbral) {
       vad_data->state = ST_VOICE;
+      vad_data->tramas_silencio = 0;
+    }
     break;
 
   case ST_VOICE:
-    if (f.p < vad_data -> potencia_soroll + umbral)
-      vad_data->state = ST_SILENCE;
+    if (f.p < vad_data->potencia_soroll + umbral) {
+      vad_data->tramas_silencio++;
+
+      if (vad_data->tramas_silencio >= MIN_SILENCE_FRAMES) {
+        vad_data->state = ST_SILENCE;
+        vad_data->tramas_silencio = 0;
+      }
+    } else {
+      vad_data->tramas_silencio = 0;
+    }
     break;
 
   case ST_UNDEF:
