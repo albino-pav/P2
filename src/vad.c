@@ -1,31 +1,32 @@
-#include <math.h>  // Faig servir log10f i powf.
-#include <stdlib.h>  // Reservo i allibero la memòria del detector.
+#include <math.h>
+#include <stdlib.h>
 #include "vad.h"
-#include "pav_analysis.h"  // Reutilitzo el càlcul de potència de P1.
+#include "pav_analysis.h"
 
-const int INIT_FRAMES = 9;  // Estimo el soroll amb els primers 90 ms.
-const int MIN_VOICE = 8;  // Exigeixo 80 ms seguits per confirmar la veu.
-const int MIN_SILENCE = 17;  // Exigeixo 170 ms seguits per confirmar el silenci.
-const float MARGIN_DB = 5.94f;  // Demano 5,94 dB més que el soroll per detectar veu.
-const float NOISE_ALPHA = 0.00615f;  // Actualitzo lentament la referència durant el silenci.
+// Treballo amb blocs de 10 ms. Els marges són en dB.
+const int INIT_FRAMES = 9;
+const int MIN_VOICE = 8;
+const int MIN_SILENCE = 17;
+const float MARGIN_DB = 5.94f;
+const float NOISE_ALPHA = 0.00615f;
 
 const char *state2str(VAD_STATE state) {
-    const char *names[] = {"UNDEF", "S", "V", "INIT", "MAYBE_V", "MAYBE_S"};  // Assigno un nom a cada estat.
-    return names[state];  // Retorno el nom de l'estat rebut.
+    const char *names[] = {"UNDEF", "S", "V", "INIT", "MAYBE_V", "MAYBE_S"};
+    return names[state];
 }
 
 VAD_DATA *vad_open(float rate) {
-    if (rate < 100) return NULL;  // Necessito almenys una mostra per bloc de 10 ms.
-    VAD_DATA *data = malloc(sizeof(VAD_DATA));  // Reservo les dades del detector.
-    if (data == NULL) return NULL;  // Comprovo que he pogut reservar memòria.
-    data->state = ST_INIT;  // Començo estimant el soroll inicial.
-    data->sampling_rate = rate;  // Guardo la freqüència del fitxer.
-    data->frame_length = (unsigned int) (rate * 0.010);  // Calculo les mostres de 10 ms.
-    data->initial_frames = 0;  // Encara no he llegit cap bloc inicial.
+    if (rate < 100) return NULL;
+    VAD_DATA *data = malloc(sizeof(VAD_DATA));
+    if (data == NULL) return NULL;
+    data->state = ST_INIT;
+    data->sampling_rate = rate;
+    data->frame_length = (unsigned int) (rate * 0.010);
+    data->initial_frames = 0;
     data->initial_max = 0.0f;
-    data->initial_sum = 0.0f;  // Inicialitzo la suma de potències.
-    data->noise = -100.0f;  // Preparo un valor finit per al silenci absolut.
-    data->margin_db = MARGIN_DB;  // Faig servir 5,94 dB si no rebo un altre marge.
+    data->initial_sum = 0.0f;
+    data->noise = -100.0f;
+    data->margin_db = MARGIN_DB;
     data->init_frames = INIT_FRAMES;
     data->min_voice = MIN_VOICE;
     data->min_silence = MIN_SILENCE;
@@ -43,101 +44,103 @@ VAD_DATA *vad_open(float rate) {
     data->max_wait = 25;
     data->elapsed = data->high_seen = 0;
     data->voice_dips = 0;
-    data->count = 0;  // Encara no tinc blocs provisionals.
-    data->last_feature = -100.0f;  // Inicialitzo el valor que mostraré amb --verbose.
-    return data;  // Retorno el detector preparat.
+    data->count = 0;
+    data->last_feature = -100.0f;
+    return data;
 }
 
 unsigned int vad_frame_size(VAD_DATA *data) {
-    return data->frame_length;  // Retorno quantes mostres necessita cada bloc.
+    return data->frame_length;
 }
 
 VAD_STATE vad(VAD_DATA *data, float *x) {
-    float power = data->remove_dc ? compute_power_centered(x, data->frame_length) : compute_power(x, data->frame_length);  // Calculo la potència del bloc en dB.
-    if (power < -100.0f) power = -100.0f;  // Evito treballar amb menys infinit.
-    data->last_feature = power;  // Conservo la potència per poder revisar-la.
+    float power = data->remove_dc ? compute_power_centered(x, data->frame_length) : compute_power(x, data->frame_length);
+    if (power < -100.0f) power = -100.0f;
+    data->last_feature = power;
 
-    if (data->state == ST_INIT) {  // Estimo el soroll abans de prendre decisions.
+    // Faig la mitjana en potència lineal i després passo a dB.
+    if (data->state == ST_INIT) {
         float linear_power = powf(10.0f, power / 10.0f);
         if (data->trim_initial && linear_power > data->initial_max) {
-            data->initial_sum += data->initial_max;  // Deixo fora el màxim i sumo l’anterior.
+            data->initial_sum += data->initial_max;
             data->initial_max = linear_power;
         } else {
             data->initial_sum += linear_power;
         }
-        data->initial_frames++;  // Compto aquest bloc inicial.
-        if (data->initial_frames < data->init_frames) return ST_UNDEF;  // Espero prou blocs per fer la mitjana.
-        data->noise = 10.0f * log10f(data->initial_sum / (data->initial_frames - data->trim_initial));  // Passo la mitjana a dB.
-        data->state = ST_SILENCE;  // Considero silenci el període d'inicialització.
-        return ST_SILENCE;  // Resolc també els blocs inicials que havia deixat pendents.
+        data->initial_frames++;
+        if (data->initial_frames < data->init_frames) return ST_UNDEF;
+        data->noise = 10.0f * log10f(data->initial_sum / (data->initial_frames - data->trim_initial));
+        data->state = ST_SILENCE;
+        return ST_SILENCE;
     }
 
     float zcr = data->rescue_zcr ? compute_zcr(x, data->frame_length, data->sampling_rate) : 0.0f;
-    float threshold = data->noise + data->margin_db;  // Sumo al soroll el marge seleccionat.
+    float threshold = data->noise + data->margin_db;
     int candidate = power > threshold || (data->rescue_zcr && zcr > data->zcr_threshold && power > threshold - data->zcr_discount);
     float exit_threshold = threshold - data->silence_gap;
     int continuing = power > exit_threshold || (data->rescue_zcr && zcr > data->zcr_threshold && power > exit_threshold - data->zcr_discount);
     switch (data->state) {
     case ST_SILENCE:
-        if (candidate) {  // Detecto un possible inici de veu.
-            data->state = ST_MAYBE_VOICE;  // Espero abans de donar la veu per segura.
-            data->count = 1;  // Compto el primer bloc candidat.
+        if (candidate) {
+            data->state = ST_MAYBE_VOICE;
+            data->count = 1;
             data->voice_dips = 0;
             data->elapsed = 1;
             data->high_seen = power > threshold + data->confirm_boost;
-            if (data->min_voice == 1 && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;  // Sense espera de veu.
+            if (data->min_voice == 1 && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;
         } else if (!data->guard_noise || power < data->noise + data->noise_update_margin) {
-            data->noise += data->noise_alpha * (power - data->noise);  // Adapto el soroll mentre continuo en silenci.
+            data->noise += data->noise_alpha * (power - data->noise);
         }
         break;
+    // Els estats MAYBE esperen abans de confirmar el canvi.
     case ST_MAYBE_VOICE:
         data->elapsed++;
         if (power > threshold + data->confirm_boost) data->high_seen = 1;
-        if (candidate) {  // Comprovo si el nivell continua sent prou alt.
-            data->count++;  // Afegeixo un altre bloc candidat.
-            if (data->count >= data->min_voice && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;  // Confirmo la veu si dura prou.
+        if (candidate) {
+            data->count++;
+            if (data->count >= data->min_voice && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;
         } else if (data->allow_dip && data->voice_dips == 0) {
-            data->voice_dips = 1;  // No augmento el recompte de blocs alts.
+            data->voice_dips = 1;
         } else {
-            data->state = ST_SILENCE;  // Descarto un pic massa curt.
-            data->count = 0;  // Reinicio el recompte.
+            data->state = ST_SILENCE;
+            data->count = 0;
         }
         if (data->confirm_high && data->state == ST_MAYBE_VOICE && data->elapsed >= data->max_wait) {
-            data->state = ST_SILENCE;  // No he arribat al llindar alt a temps.
+            data->state = ST_SILENCE;
             data->count = 0;
         }
         break;
     case ST_VOICE:
-        if (!continuing) {  // Detecto una possible pausa.
-            data->state = ST_MAYBE_SILENCE;  // Espero abans de tallar el segment de veu.
-            data->count = 1;  // Compto el primer bloc de nivell baix.
-            if (data->min_silence == 1) data->state = ST_SILENCE;  // Sense espera de silenci.
+        if (!continuing) {
+            data->state = ST_MAYBE_SILENCE;
+            data->count = 1;
+            if (data->min_silence == 1) data->state = ST_SILENCE;
         }
         break;
     case ST_MAYBE_SILENCE:
-        if (!continuing) {  // Comprovo si la pausa continua.
-            data->count++;  // Compto un altre bloc de nivell baix.
-            if (data->count >= data->min_silence) data->state = ST_SILENCE;  // Confirmo el silenci si dura prou.
+        if (!continuing) {
+            data->count++;
+            if (data->count >= data->min_silence) data->state = ST_SILENCE;
         } else {
-            data->state = ST_VOICE;  // Mantinc dins de la veu una pausa massa curta.
-            data->count = 0;  // Reinicio el recompte.
+            data->state = ST_VOICE;
+            data->count = 0;
         }
         break;
     default:
         break;
     }
 
-    if (data->state == ST_SILENCE || data->state == ST_VOICE) return data->state;  // Retorno una decisió confirmada.
-    return ST_UNDEF;  // Deixo pendents els blocs provisionals.
+    if (data->state == ST_SILENCE || data->state == ST_VOICE) return data->state;
+    return ST_UNDEF;
 }
 
 VAD_STATE vad_close(VAD_DATA *data) {
-    VAD_STATE state = ST_SILENCE;  // Resolc com a silenci un inici incomplet o una veu no confirmada.
-    if (data->state == ST_VOICE || data->state == ST_MAYBE_SILENCE) state = ST_VOICE;  // Mantinc la veu si la pausa final és massa curta.
-    free(data);  // Allibero la memòria del detector.
-    return state;  // Retorno la decisió per als darrers blocs.
+    VAD_STATE state = ST_SILENCE;
+    if (data->state == ST_VOICE || data->state == ST_MAYBE_SILENCE) state = ST_VOICE;
+    free(data);
+    return state;
 }
 
 void vad_show_state(const VAD_DATA *data, FILE *out) {
-    fprintf(out, "%s\t%.3f\t%.3f\n", state2str(data->state), data->last_feature, data->noise + data->margin_db);  // Mostro estat, potència i llindar.
+    fprintf(out, "%s\t%.3f\t%.3f\n", state2str(data->state), data->last_feature, data->noise + data->margin_db);
 }

@@ -2,7 +2,7 @@
 
 Jordi Albareda Fortuny · Grup 41 · Lloc 05
 
-Aquesta és la branca `jordi-albareda-combinacions`. Aquí provo les idees del detector juntes i per separat. La versió d’entrega continua a `jordi-albareda`.
+En aquesta branca he provat les idees del detector juntes i per separat. És `jordi-albareda-combinacions`; la base d’entrega continua a `jordi-albareda`.
 
 Les idees i els resultats estan explicats amb paraules senzilles a [IDEES.md](IDEES.md). També hi ha la [matriu completa](IDEES.md#matriu-de-totes-les-combinacions).
 
@@ -16,7 +16,7 @@ A més de les vuit idees que ja havia provat, ara hi ha tres opcions més:
 | `--confirma-alt` | Exigir que la veu arribi a un llindar alt abans d’un temps màxim | [Arbelo–Moreno, PR #7](https://github.com/albino-pav/P2/pull/7) i [Galvan–Fernandez, PR #3](https://github.com/albino-pav/P2/pull/3) |
 | `--limita-soroll` | Actualitzar el soroll només amb blocs prou propers al soroll estimat | [Pegueroles–Riera](https://github.com/falgarspegueroles/P2/blob/Pegueroles-Riera/src/vad.c) |
 
-He adaptat les idees al meu detector. Per exemple, arribar al llindar alt no permet saltar-se la duració mínima de veu. Les tres opcions estan apagades per defecte.
+Les he afegit al detector que ja tenia. Encara que un bloc arribi al llindar alt, espero la duració mínima de veu. Les tres opcions estan apagades per defecte.
 
 Les altres vuit idees continuen a les proves: esperes de veu i silenci, seguiment del soroll, histèresi, retorn al primer bloc pendent, treure el pic inicial, permetre una baixada i treure la mitjana del bloc.
 
@@ -24,7 +24,7 @@ Les altres vuit idees continuen a les proves: esperes de veu i silenci, seguimen
 
 Ara hi ha **2.048 combinacions**. Per a cadascuna faig tres inicis amb valors normals. Si millora el TOTAL, hi moc el centre. Si no millora, redueixo el pas. També ajusto els valors de les tres idees noves.
 
-Els perfils històrics només serveixen per comparar. No els faig servir per orientar la cerca.
+Els valors que havia provat abans els guardo per comparar. La cerca comença amb tres grups de valors normals.
 
 ## Resultat
 
@@ -42,7 +42,7 @@ Guanya uns **0,295 punts** respecte de l’estudi amb vuit idees i **0,357 punts
 
 El límit d’actualització del soroll també s’ha provat: la millor configuració que l’activa arriba a **96,182 %**. És molt propera a la guanyadora. No vol dir que aquesta idea sigui dolenta; només que aquí el millor resultat trobat la deixa apagada.
 
-Els valors per defecte continuen sent els de la base. La configuració guanyadora queda com a prova en aquesta branca.
+Si executo el programa sense les opcions noves, continua fent servir la base. A sota hi ha la comanda per repetir el 96,186 %.
 
 ## Compilar i executar
 
