@@ -169,10 +169,6 @@ Ejercicios
 > Por eso, consideramos que un incremento de unos 10–15 dB respecto al ruido de fondo sería suficiente para detectar voz sin confundirla con pequeñas variaciones del ruido. Además, el umbral no sería tan alto como para perder las consonantes más débiles.
 
 
-Por eso, usaríamos un umbral de unos $10\text{--}15\text{ dB}$ por encima del ruido de fondo. Así evitamos detectar pequeñas variaciones del ruido como voz sin exigir una potencia tan alta que perdamos las consonantes más débiles. El umbral concreto depende del nivel de silencio que se tome como referencia.
-  * Duración mínima razonable de los segmentos de voz y silencio.
-
-
 
 > **Respuesta:**
 >
@@ -246,7 +242,6 @@ Por eso, usaríamos un umbral de unos $10\text{--}15\text{ dB}$ por encima del r
 
 - Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o parámetros alternativos, etc.).
 
-- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o parámetros alternativos, etc.).
 
 
 > **Respuesta:** Hemos añadido algunas modificaciones al detector inicial para mejorar la detección y evitar que cambie constantemente entre voz y silencio cuando hay ruidos o pausas cortas.
