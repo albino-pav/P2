@@ -13,11 +13,14 @@
 typedef struct {
     /* options without arguments */
     int confirma_alt;
+    int entrada_directa;
     int help;
     int limita_soroll;
     int permet_baixada;
     int rescat_zcr;
     int sense_retroces;
+    int soroll_asimetric;
+    int terra_soroll;
     int treu_dc;
     int treu_pic;
     int verbose;
@@ -25,6 +28,8 @@ typedef struct {
     /* options with arguments */
     char *alfa;
     char *espera;
+    char *factor_baixada;
+    char *frame_ms;
     char *histeresi;
     char *inici;
     char *input_wav;
@@ -32,6 +37,7 @@ typedef struct {
     char *marge_soroll;
     char *output_vad;
     char *pujada;
+    char *rang_soroll;
     char *rebaixa_zcr;
     char *silenci;
     char *veu;
@@ -53,7 +59,7 @@ const char help_message[] =
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
 "   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 5.94]\n"
-"   --inici=N  Blocs de 10 ms per calcular el soroll inicial [default: 9]\n"
+"   --inici=N  Blocs per calcular el soroll inicial [default: 9]\n"
 "   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 8]\n"
 "   --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 17]\n"
 "   --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.00615]\n"
@@ -70,6 +76,12 @@ const char help_message[] =
 "   --pujada=DB  Increment per al llindar de confirmacio [default: 3]\n"
 "   --espera=N  Maxim de blocs per confirmar veu [default: 25]\n"
 "   --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]\n"
+"   --soroll-asimetric  Adapta mes rapid el soroll quan baixa\n"
+"   --terra-soroll  Limita el soroll segons el nivell estimat de veu\n"
+"   --entrada-directa  Un bloc fort pot confirmar veu sense esperar\n"
+"   --factor-baixada=X  Factor extra per seguir baixades de soroll [default: 4]\n"
+"   --rang-soroll=DB  Diferencia maxima entre veu i soroll [default: 55]\n"
+"   --frame-ms=MS  Durada del bloc en ms [default: 10]\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -302,6 +314,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             return 1;
         } else if (!strcmp(option->olong, "--confirma-alt")) {
             args->confirma_alt = option->value;
+        } else if (!strcmp(option->olong, "--entrada-directa")) {
+            args->entrada_directa = option->value;
         } else if (!strcmp(option->olong, "--help")) {
             args->help = option->value;
         } else if (!strcmp(option->olong, "--limita-soroll")) {
@@ -312,6 +326,10 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             args->rescat_zcr = option->value;
         } else if (!strcmp(option->olong, "--sense-retroces")) {
             args->sense_retroces = option->value;
+        } else if (!strcmp(option->olong, "--soroll-asimetric")) {
+            args->soroll_asimetric = option->value;
+        } else if (!strcmp(option->olong, "--terra-soroll")) {
+            args->terra_soroll = option->value;
         } else if (!strcmp(option->olong, "--treu-dc")) {
             args->treu_dc = option->value;
         } else if (!strcmp(option->olong, "--treu-pic")) {
@@ -326,6 +344,12 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--espera")) {
             if (option->argument)
                 args->espera = option->argument;
+        } else if (!strcmp(option->olong, "--factor-baixada")) {
+            if (option->argument)
+                args->factor_baixada = option->argument;
+        } else if (!strcmp(option->olong, "--frame-ms")) {
+            if (option->argument)
+                args->frame_ms = option->argument;
         } else if (!strcmp(option->olong, "--histeresi")) {
             if (option->argument)
                 args->histeresi = option->argument;
@@ -347,6 +371,9 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--pujada")) {
             if (option->argument)
                 args->pujada = option->argument;
+        } else if (!strcmp(option->olong, "--rang-soroll")) {
+            if (option->argument)
+                args->rang_soroll = option->argument;
         } else if (!strcmp(option->olong, "--rebaixa-zcr")) {
             if (option->argument)
                 args->rebaixa_zcr = option->argument;
@@ -379,9 +406,10 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "25", (char*)
-        "0", (char*) "9", NULL, (char*) "5.94", (char*) "2", NULL, (char*) "3",
-        (char*) "2", (char*) "17", (char*) "8", (char*) "3000",
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*) "0.00615", (char*) "25",
+        (char*) "4", (char*) "10", (char*) "0", (char*) "9", NULL, (char*)
+        "5.94", (char*) "2", NULL, (char*) "3", (char*) "55", (char*) "2",
+        (char*) "17", (char*) "8", (char*) "3000",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -391,17 +419,22 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     };
     Option options[] = {
         {NULL, "--confirma-alt", 0, 0, NULL},
+        {NULL, "--entrada-directa", 0, 0, NULL},
         {"-h", "--help", 0, 0, NULL},
         {NULL, "--limita-soroll", 0, 0, NULL},
         {NULL, "--permet-baixada", 0, 0, NULL},
         {NULL, "--rescat-zcr", 0, 0, NULL},
         {NULL, "--sense-retroces", 0, 0, NULL},
+        {NULL, "--soroll-asimetric", 0, 0, NULL},
+        {NULL, "--terra-soroll", 0, 0, NULL},
         {NULL, "--treu-dc", 0, 0, NULL},
         {NULL, "--treu-pic", 0, 0, NULL},
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
         {NULL, "--alfa", 1, 0, NULL},
         {NULL, "--espera", 1, 0, NULL},
+        {NULL, "--factor-baixada", 1, 0, NULL},
+        {NULL, "--frame-ms", 1, 0, NULL},
         {NULL, "--histeresi", 1, 0, NULL},
         {NULL, "--inici", 1, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
@@ -409,12 +442,13 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {NULL, "--marge-soroll", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
         {NULL, "--pujada", 1, 0, NULL},
+        {NULL, "--rang-soroll", 1, 0, NULL},
         {NULL, "--rebaixa-zcr", 1, 0, NULL},
         {NULL, "--silenci", 1, 0, NULL},
         {NULL, "--veu", 1, 0, NULL},
         {NULL, "--zcr", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 23, commands, arguments, options};
+    Elements elements = {0, 0, 29, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

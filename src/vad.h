@@ -26,6 +26,8 @@ typedef struct {
     int rescue_zcr, confirm_high, guard_noise;
     float zcr_threshold, zcr_discount, confirm_boost, noise_update_margin;
     int max_wait, elapsed, high_seen;
+    int asymmetric_noise, floor_noise, direct_voice;
+    float down_factor, voice_range, voice_level, voice_alpha;
     int voice_dips;
     int count;
     float last_feature;

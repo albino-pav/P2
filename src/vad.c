@@ -3,7 +3,7 @@
 #include "vad.h"
 #include "pav_analysis.h"
 
-// Treballo amb blocs de 10 ms. Els marges són en dB.
+// Per defecte treballo amb blocs de 10 ms. Els marges són en dB.
 const int INIT_FRAMES = 9;
 const int MIN_VOICE = 8;
 const int MIN_SILENCE = 17;
@@ -43,6 +43,11 @@ VAD_DATA *vad_open(float rate) {
     data->noise_update_margin = 2.0f;
     data->max_wait = 25;
     data->elapsed = data->high_seen = 0;
+    data->asymmetric_noise = data->floor_noise = data->direct_voice = 0;
+    data->down_factor = 4.0f;
+    data->voice_range = 55.0f;
+    data->voice_level = -80.0f;
+    data->voice_alpha = 0.1f;
     data->voice_dips = 0;
     data->count = 0;
     data->last_feature = -100.0f;
@@ -70,10 +75,17 @@ VAD_STATE vad(VAD_DATA *data, float *x) {
         data->initial_frames++;
         if (data->initial_frames < data->init_frames) return ST_UNDEF;
         data->noise = 10.0f * log10f(data->initial_sum / (data->initial_frames - data->trim_initial));
+        data->voice_level = data->noise + 20.0f;
         data->state = ST_SILENCE;
         return ST_SILENCE;
     }
 
+    if (data->floor_noise) {
+        if (data->state == ST_VOICE || data->state == ST_MAYBE_SILENCE)
+            data->voice_level += data->voice_alpha * (power - data->voice_level);
+        if (data->noise < data->voice_level - data->voice_range)
+            data->noise = data->voice_level - data->voice_range;
+    }
     float zcr = data->rescue_zcr ? compute_zcr(x, data->frame_length, data->sampling_rate) : 0.0f;
     float threshold = data->noise + data->margin_db;
     int candidate = power > threshold || (data->rescue_zcr && zcr > data->zcr_threshold && power > threshold - data->zcr_discount);
@@ -87,9 +99,14 @@ VAD_STATE vad(VAD_DATA *data, float *x) {
             data->voice_dips = 0;
             data->elapsed = 1;
             data->high_seen = power > threshold + data->confirm_boost;
-            if (data->min_voice == 1 && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;
+            if ((data->direct_voice && data->high_seen) || (data->min_voice == 1 && (!data->confirm_high || data->high_seen))) data->state = ST_VOICE;
         } else if (!data->guard_noise || power < data->noise + data->noise_update_margin) {
-            data->noise += data->noise_alpha * (power - data->noise);
+            float alpha = data->noise_alpha;
+            if (data->asymmetric_noise && power < data->noise) {
+                alpha *= data->down_factor;
+                if (alpha > 1.0f) alpha = 1.0f;
+            }
+            data->noise += alpha * (power - data->noise);
         }
         break;
     // Els estats MAYBE esperen abans de confirmar el canvi.
@@ -98,7 +115,7 @@ VAD_STATE vad(VAD_DATA *data, float *x) {
         if (power > threshold + data->confirm_boost) data->high_seen = 1;
         if (candidate) {
             data->count++;
-            if (data->count >= data->min_voice && (!data->confirm_high || data->high_seen)) data->state = ST_VOICE;
+            if ((data->direct_voice && power > threshold + data->confirm_boost) || (data->count >= data->min_voice && (!data->confirm_high || data->high_seen))) data->state = ST_VOICE;
         } else if (data->allow_dip && data->voice_dips == 0) {
             data->voice_dips = 1;
         } else {

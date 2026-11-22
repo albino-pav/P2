@@ -9,7 +9,7 @@ Options:
    -i FILE, --input-wav=FILE   WAVE file for voice activity detection
    -o FILE, --output-vad=FILE  Label file with the result of VAD
    -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 5.94]
-   --inici=N  Blocs de 10 ms per calcular el soroll inicial [default: 9]
+   --inici=N  Blocs per calcular el soroll inicial [default: 9]
    --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 8]
    --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 17]
    --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.00615]
@@ -26,6 +26,12 @@ Options:
    --pujada=DB  Increment per al llindar de confirmacio [default: 3]
    --espera=N  Maxim de blocs per confirmar veu [default: 25]
    --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]
+   --soroll-asimetric  Adapta mes rapid el soroll quan baixa
+   --terra-soroll  Limita el soroll segons el nivell estimat de veu
+   --entrada-directa  Un bloc fort pot confirmar veu sense esperar
+   --factor-baixada=X  Factor extra per seguir baixades de soroll [default: 4]
+   --rang-soroll=DB  Diferencia maxima entre veu i soroll [default: 55]
+   --frame-ms=MS  Durada del bloc en ms [default: 10]
    -v, --verbose  Show debug information
    -h, --help     Show this screen
    --version      Show the version of the project

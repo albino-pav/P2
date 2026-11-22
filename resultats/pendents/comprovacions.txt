@@ -1,0 +1,13 @@
+OK: 8000 Hz: segueixo les baixades més ràpid i les pujades al mateix ritme.
+OK: 8000 Hz: el límit segons la veu evita un soroll estimat massa baix.
+OK: 8000 Hz: l’entrada directa accepta el pic que abans es descartava.
+OK: 8000 Hz: sis durades de bloc i final incomplet conservat.
+OK: 16000 Hz: segueixo les baixades més ràpid i les pujades al mateix ritme.
+OK: 16000 Hz: el límit segons la veu evita un soroll estimat massa baix.
+OK: 16000 Hz: l’entrada directa accepta el pic que abans es descartava.
+OK: 16000 Hz: sis durades de bloc i final incomplet conservat.
+OK: 48000 Hz: segueixo les baixades més ràpid i les pujades al mateix ritme.
+OK: 48000 Hz: el límit segons la veu evita un soroll estimat massa baix.
+OK: 48000 Hz: l’entrada directa accepta el pic que abans es descartava.
+OK: 48000 Hz: sis durades de bloc i final incomplet conservat.
+OK: opcions invàlides rebutjades.

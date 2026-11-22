@@ -53,6 +53,13 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Revisa ZCR, rebaixa, pujada, espera i marge de soroll.\n");
         return 1;
     }
+    float down_factor, voice_range, frame_ms;
+    if (!read_number(args.factor_baixada, &down_factor) || down_factor < 1 ||
+        !read_number(args.rang_soroll, &voice_range) || voice_range <= 0 ||
+        !read_number(args.frame_ms, &frame_ms) || frame_ms < 2 || frame_ms > 120) {
+        fprintf(stderr, "Revisa el factor de baixada, el rang i la durada del bloc.\n");
+        return 1;
+    }
     if (args.input_wav == NULL || args.output_vad == NULL) {
         fprintf(stderr, "%s\n", args.usage_pattern);
         return 1;
@@ -80,6 +87,18 @@ int main(int argc, char *argv[]) {
         sf_close(audio);
         return 1;
     }
+    data->frame_length = (unsigned int)(info.samplerate * frame_ms / 1000.0f);
+    if (data->frame_length == 0) {
+        vad_close(data);
+        sf_close(audio);
+        return 1;
+    }
+    data->asymmetric_noise = args.soroll_asimetric;
+    data->floor_noise = args.terra_soroll;
+    data->direct_voice = args.entrada_directa;
+    data->down_factor = down_factor;
+    data->voice_range = voice_range;
+    data->voice_alpha = 1.0f - powf(0.9f, frame_ms / 10.0f);
     unsigned int frame_size = vad_frame_size(data);
     data->init_frames = init_frames;
     data->min_voice = min_voice;
