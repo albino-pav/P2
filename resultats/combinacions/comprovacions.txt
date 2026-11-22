@@ -1,4 +1,0 @@
-OK: 8000 Hz: duracions, retrocés, soroll fix, pic, baixada, DC, histèresi i tots junts.
-OK: 16000 Hz: duracions, retrocés, soroll fix, pic, baixada, DC, histèresi i tots junts.
-OK: 48000 Hz: duracions, retrocés, soroll fix, pic, baixada, DC, histèresi i tots junts.
-OK: opcions invàlides rebutjades abans de llegir o escriure àudio.
