@@ -132,74 +132,77 @@ Ejercicios
 
 ### Etiquetado manual de los segmentos de voz y silencio
 
-- Grabe una señal de voz en la que haya distintos segmentos de voz y silencio. La señal debe ser de un
-  solo canal (monofónica), grabada con una frecuencia de muestreo de 16 kHz y codificada con PCM lineal
-  de 16 bits.
 
-  Nombre a la señal como `pav_GGP#.wav`, donde GG es el grupo de clase (por ejemplo, 21 o 41), P es el
-  número del puesto de trabajo y # es el número de señal (si sólo se entrega una señal, este número es
-  1).
 
-  > NOTA: es habitual que las grabaciones empiecen con un segmento de silencio de potencia extremadamente
-  > bajo; mucho más bajo que el nivel de ruido normal durante el resto de la señal. Si esto ocurre, la
-  > detección usando como nivel de referencia para el silencio el segmento inicial se ve seriamente
-  > dificultada. Puede detectar esta situación visualizando el nivel de potencia estimado por el propio
-  > `wavesurfer` y corregirla usando la herramienta de corte (:scissors:).
+  ![Captura wavesurfer PAV_P1](Captura%20de%20pantalla%202026-10-12%20230820.png)
 
-- Etiquete manualmente los segmentos de voz y silencio del fichero grabado al efecto. Inserte, a
-  continuación, una captura de `wavesurfer` en la que se vea con claridad la señal temporal, el contorno de
-  potencia y la tasa de cruces por cero, junto con el etiquetado manual de los segmentos.
 
-- A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
+  * **Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para estar seguros de que un segmento de señal se corresponde con voz.**
+    A partir de la observación empírica de la señal, consideramos que un primer incremento de unos **2.6 dB** respecto al ruido de fondo nos indica posible presencia de voz. Sin embargo, para estar completamente seguros (umbral de confirmación) y no confundirlo con ruido ambiente o respiraciones, el incremento total debería rondar los **9.2 dB**. En nuestro código hemos implementado esto separando el incremento en un `llindar` de decisión de 2.6 y un `marge_p` (histéresis) de 6.6.
 
-  * Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
-    estar seguros de que un segmento de señal se corresponde con voz.
+  * **Duración mínima razonable de los segmentos de voz y silencio.**
+    La duración mínima razonable se sitúa en torno a los **200 - 300 ms** (lo que equivale aproximadamente a 24 tramas en nuestra configuración). Este tiempo es suficiente para evitar que ruidos impulsivos cortos (golpes al micrófono, chasquidos) se consideren arranques de voz, y a su vez evita que las breves pausas de las consonantes oclusivas se cataloguen erróneamente como cambios definitivos a estado de silencio.
 
-  * Duración mínima razonable de los segmentos de voz y silencio.
-
-  * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
+  * **¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?**
+    Sí. Durante los segmentos de silencio, la tasa de cruces por cero (ZCR) fluctúa de manera muy caótica debido a la aleatoriedad del ruido de fondo. En cambio, durante el habla, la ZCR nos permite distinguir fonemas: toma valores bajos y estables en los fonemas sonoros (vocales) y valores altísimos en los fonemas fricativos sordos (como la /s/). Esto es muy útil porque las fricativas tienen tan poca energía que el detector de potencia podría ignorarlas, pero la ZCR nos ayuda a retenerlas como voz.
 
 
 ### Desarrollo del detector de actividad vocal
 
-- Complete el código de los ficheros de la práctica para implementar un detector de actividad vocal en
-  tiempo real tan exacto como sea posible. Tome como objetivo la maximización de la puntuación-F `TOTAL`.
+- Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección automática conseguida para el fichero grabado al efecto. 
+![Comparación entre etiquetado manual y detección automática](CapturaCCAV_P2.jpeg)
 
-- Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección
-  automática conseguida para el fichero grabado al efecto. 
+  Las discrepancias principales se observan en las fronteras de las palabras. El etiquetado manual es muy estricto respecto al inicio y fin visible de la onda. En cambio, nuestro autómata presenta un efecto *hangover* (inercia): tarda unas cuantas tramas extra en caer al estado de silencio debido a las reverberaciones de la sala y a las colas de energía. Asimismo, hemos notado pequeñas discrepancias en fonemas fricativos muy suaves de final de frase, cuya energía no logra superar el umbral configurado y el sistema los corta antes de tiempo.
 
-- Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
 
-- Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
-  continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
-  el resumen).
+
+  ```text
+  **************** Summary ****************
+  Recall V:615.81/625.02 98.53%   Precision V:615.81/698.39 88.18%   F-score V (2)  : 96.27%
+  Recall S:317.88/400.47 79.38%   Precision S:317.88/327.09 97.19%   F-score S (1/2): 93.01%
+  ===> TOTAL: 94.625%
 
 
 ### Trabajos de ampliación
 
-#### Cancelación del ruido en los segmentos de silencio
+Se han implementado con éxito las dos ampliaciones propuestas en la práctica:
 
-- Si ha desarrollado el algoritmo para la cancelación de los segmentos de silencio, inserte una gráfica en
-  la que se vea con claridad la señal antes y después de la cancelación (puede que `wavesurfer` no sea la
-  mejor opción para esto, ya que no es capaz de visualizar varias señales al mismo tiempo).
+#### 1. Cancelación del ruido en los segmentos de silencio
 
-#### Gestión de las opciones del programa usando `docopt_c`
+Se ha dotado al programa principal (`main_vad.c`) de la capacidad para limpiar el ruido de los audios. Cuando el usuario especifica un fichero `.wav` de salida mediante la opción `-w`, el programa escribe la señal original. Sin embargo, cada vez que el autómata confirma un segmento de silencio definitivo (`ST_SILENCE`), el programa retrocede dinámicamente en el puntero de escritura del fichero de audio (usando `sf_seek`) y sobrescribe la trama con ceros (`buffer_zeros`). Esto produce un archivo final donde los silencios son un cero absoluto, pero la voz se mantiene inalterada.
 
-- Si ha usado `docopt_c` para realizar la gestión de las opciones y argumentos del programa `vad`, inserte
-  una captura de pantalla en la que se vea el mensaje de ayuda del programa.
+*(Nota: En la carpeta del proyecto se pueden generar y visualizar estos audios silenciados).*
+
+#### 2. Gestión de las opciones del programa usando `docopt_c`
+
+Se ha modificado la cabecera e integrado la librería `docopt_c` para exponer todos los parámetros de configuración del autómata directamente desde la línea de comandos, sin necesidad de recompilar el programa. Esto incluye el control sobre los umbrales de decisión, la duración temporal de las tramas, los márgenes de histéresis y el contador de *frames* diferidos. 
+
+A continuación se muestra el mensaje de ayuda generado por el programa al ejecutar `./bin/vad -h`:
+
+```text
+VAD - Voice Activity Detector
+
+Usage:
+   vad [options] -i <input-wav> -o <output-vad> [-w <output-wav>]
+   vad (-h | --help)
+   vad --version
+
+Options:
+   -i FILE, --input-wav=FILE       WAVE file for voice activity detection
+   -o FILE, --output-vad=FILE      Label file with the result of VAD
+   -w FILE, --output-wav=FILE      WAVE file with silences cleared
+   -l REAL, --llindar=REAL         llindar de decisió veu i silenci [default: 2.6]
+   -t REAL, --frame-time=REAL      temps de cada trama en ms [default: 120]
+   -m REAL, --marge-p=REAL         marge d'histèresi de potència pel canvi d'estat [default: 6.6]
+   -n INTEGER, --n-frames=INTEGER  nombre de trames consecutives en estat INDEFINIT fins a decidir VEU [default: 24]
+   -v, --verbose  Show debug information
+   -h, --help     Show this screen
+   --version      Show the version of the project
+```
 
 
 ### Contribuciones adicionales y/o comentarios acerca de la práctica
 
-- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o 
-  parámetros alternativos, etc.).
+Como aportación complementaria, hemos desarrollado un script en *bash* llamado `cardem-li.sh` para automatizar el cálculo de los mejores umbrales. Este script realiza un proceso de iteración sistemática (*grid search* o barrido), ejecutando la base de datos `db.v4` con valores de `llindar` que van desde 2.0 hasta 3.0 (en saltos de 0.05). A continuación, filtra estadísticamente las ejecuciones y las ordena por su puntuación TOTAL.
 
-- Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
-  considere de interés de cara a su evaluación.
-
-
-### Antes de entregar la práctica
-
-Recuerde comprobar que el repositorio cuenta con los códigos correctos y en condiciones de ser 
-correctamente compilados con la orden `meson bin; ninja -C bin`. El programa generado (`bin/vad`) será
-el usado, sin más opciones, para realizar la evaluación *ciega* del sistema.
+Esto nos ha permitido encontrar de manera rápida, automatizada y precisa la mejor combinación posible para el umbral de decisión, obteniendo así el `94.625%` final presentado en el apartado anterior.

@@ -2,7 +2,10 @@
 
 # Be sure that this file has execution permissions:
 # Use the nautilus explorer or chmod +x run_vad.sh
-
+llindar=${1:-2.6}
+frame_time=${2:-120}  # in ms
+marge_p=${3:-6.6}
+n_frames=${4:-24}
 # Establecemos que el código de retorno de un pipeline sea el del último programa con código de retorno
 # distinto de cero, o cero si todos devuelven cero.
 set -o pipefail
@@ -10,7 +13,7 @@ set -o pipefail
 # Write here the name and path of your program and database
 DIR_P2=$HOME/PAV/P2
 DB=$DIR_P2/db.v4
-CMD=$DIR_P2/bin/vad
+CMD="$DIR_P2/bin/vad -l$llindar -t$frame_time -m$marge_p -n$n_frames"
 
 for filewav in $DB/*/*wav; do
 #    echo

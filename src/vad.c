@@ -1,10 +1,15 @@
-#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "vad.h"
+#include "pav_analysis.h"
 
-const float FRAME_TIME = 10.0F; /* in ms. */
+/*
+ * const float FRAME_TIME = 120;  // in ms
+ *
+ * const float MARGE_P = 6.6;
+ * const unsigned short N_FRAMES = 24;
+*/
 
 /* 
  * As the output state is only ST_VOICE, ST_SILENCE, or ST_UNDEF,
@@ -27,44 +32,39 @@ typedef struct {
   float am;
 } Features;
 
-/* 
- * TODO: Delete and use your own features!
- */
-
 Features compute_features(const float *x, int N) {
   /*
    * Input: x[i] : i=0 .... N-1 
    * Ouput: computed features
    */
-  /* 
-   * DELETE and include a call to your own functions
-   *
-   * For the moment, compute random value between 0 and 1 
-   */
   Features feat;
-  feat.zcr = feat.p = feat.am = (float) rand()/RAND_MAX;
+  //feat.zcr = compute_zcr(x, N, 1e3 / FRAME_TIME);
+  feat.p = compute_power(x, N);
+  //feat.am = compute_am(x, N);
   return feat;
 }
 
 /* 
- * TODO: Init the values of vad_data
+ * Init the values of vad_data
  */
 
-VAD_DATA * vad_open(float rate) {
+VAD_DATA * vad_open(float rate, float frame_time) {
   VAD_DATA *vad_data = malloc(sizeof(VAD_DATA));
   vad_data->state = ST_INIT;
   vad_data->sampling_rate = rate;
-  vad_data->frame_length = rate * FRAME_TIME * 1e-3;
+  vad_data->frame_length = rate * frame_time * 1e-3;
   return vad_data;
 }
 
 VAD_STATE vad_close(VAD_DATA *vad_data) {
   /* 
-   * TODO: decide what to do with the last undecided frames
+   * Decides what to do with the last undecided frames
    */
   VAD_STATE state = vad_data->state;
 
   free(vad_data);
+  if (state != ST_SILENCE && state != ST_VOICE)
+    return ST_SILENCE;
   return state;
 }
 
@@ -73,16 +73,11 @@ unsigned int vad_frame_size(VAD_DATA *vad_data) {
 }
 
 /* 
- * TODO: Implement the Voice Activity Detection 
+ * Implements the Voice Activity Detection
  * using a Finite State Automata
  */
 
-VAD_STATE vad(VAD_DATA *vad_data, float *x) {
-
-  /* 
-   * TODO: You can change this, using your own features,
-   * program finite state automaton, define conditions, etc.
-   */
+VAD_STATE vad(VAD_DATA *vad_data, float *x, float llindar, float marge_p, unsigned short n_frames, unsigned short *count) {
 
   Features f = compute_features(x, vad_data->frame_length);
   vad_data->last_feature = f.p; /* save feature, in case you want to show */
@@ -90,27 +85,41 @@ VAD_STATE vad(VAD_DATA *vad_data, float *x) {
   switch (vad_data->state) {
   case ST_INIT:
     vad_data->state = ST_SILENCE;
-    break;
-
-  case ST_SILENCE:
-    if (f.p > 0.95)
-      vad_data->state = ST_VOICE;
+    vad_data->potencia_soroll = f.p;
     break;
 
   case ST_VOICE:
-    if (f.p < 0.01)
+    if (f.p < vad_data->potencia_soroll + llindar) {
       vad_data->state = ST_SILENCE;
+      *count = 0;
+    }
     break;
 
-  case ST_UNDEF:
+  default:  // either ST_VOICE or ST_UNDEF
+    if (f.p > vad_data->potencia_soroll + llindar + marge_p) {
+      vad_data->state = ST_VOICE;
+      *count = 0;
+    } else if (f.p > vad_data->potencia_soroll + llindar) {
+      if (*count == n_frames) {
+        vad_data->state = ST_VOICE;
+        *count = 0;
+        break;
+      }
+      vad_data->state = ST_UNDEF;
+      (*count)++;
+    } else {
+      vad_data->state = ST_SILENCE;
+      *count = 0;
+    }
     break;
+
   }
 
   if (vad_data->state == ST_SILENCE ||
       vad_data->state == ST_VOICE)
     return vad_data->state;
   else
-    return ST_UNDEF;
+    return ST_SILENCE;
 }
 
 void vad_show_state(const VAD_DATA *vad_data, FILE *out) {

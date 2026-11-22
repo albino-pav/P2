@@ -16,7 +16,11 @@ typedef struct {
     int verbose;
     int version;
     /* options with arguments */
+    char *frame_time;
     char *input_wav;
+    char *llindar;
+    char *marge_p;
+    char *n_frames;
     char *output_vad;
     char *output_wav;
     /* special */
@@ -33,9 +37,13 @@ const char help_message[] =
 "   vad --version\n"
 "\n"
 "Options:\n"
-"   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
-"   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
-"   -w FILE, --output-wav=FILE  WAVE file with silences cleared\n"
+"   -i FILE, --input-wav=FILE       WAVE file for voice activity detection\n"
+"   -o FILE, --output-vad=FILE      Label file with the result of VAD\n"
+"   -w FILE, --output-wav=FILE      WAVE file with silences cleared\n"
+"   -l REAL, --llindar=REAL         llindar de decisió veu i silenci [default: 2.6]\n"
+"   -t REAL, --frame-time=REAL      temps de cada trama en ms [default: 120]\n"
+"   -m REAL, --marge-p=REAL         marge d'histèresi de potència pel canvi d'estat [default: 6.6]\n"
+"   -n INTEGER, --n-frames=INTEGER  nombre de trames consecutives en estat INDEFINIT fins a decidir VEU [default: 24]\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -270,9 +278,21 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
             args->verbose = option->value;
         } else if (!strcmp(option->olong, "--version")) {
             args->version = option->value;
+        } else if (!strcmp(option->olong, "--frame-time")) {
+            if (option->argument)
+                args->frame_time = option->argument;
         } else if (!strcmp(option->olong, "--input-wav")) {
             if (option->argument)
                 args->input_wav = option->argument;
+        } else if (!strcmp(option->olong, "--llindar")) {
+            if (option->argument)
+                args->llindar = option->argument;
+        } else if (!strcmp(option->olong, "--marge-p")) {
+            if (option->argument)
+                args->marge_p = option->argument;
+        } else if (!strcmp(option->olong, "--n-frames")) {
+            if (option->argument)
+                args->n_frames = option->argument;
         } else if (!strcmp(option->olong, "--output-vad")) {
             if (option->argument)
                 args->output_vad = option->argument;
@@ -299,7 +319,8 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, NULL, NULL, NULL,
+        0, 0, 0, (char*) "120", NULL, (char*) "2.6", (char*) "6.6", (char*)
+        "24", NULL, NULL,
         usage_pattern, help_message
     };
     Tokens ts;
@@ -311,11 +332,15 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {"-h", "--help", 0, 0, NULL},
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
+        {"-t", "--frame-time", 1, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
+        {"-l", "--llindar", 1, 0, NULL},
+        {"-m", "--marge-p", 1, 0, NULL},
+        {"-n", "--n-frames", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
         {"-w", "--output-wav", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 6, commands, arguments, options};
+    Elements elements = {0, 0, 10, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
