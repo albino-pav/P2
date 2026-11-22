@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (sndfile_out != 0) {
-      /* TODO: go back and write zeros in silence segments */
+      /* Escribir muestras originales si es voz, o ceros si es silencio */
+      sf_write_float(sndfile_out, (state == ST_VOICE) ? buffer : buffer_zeros, frame_size);
     }
   }
 

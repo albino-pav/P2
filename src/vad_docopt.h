@@ -37,10 +37,10 @@ const char help_message[] =
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
 "   -w FILE, --output-wav=FILE  WAVE file with silences cleared\n"
-"   -ll REAL, --llindar=REAL    Llindar de decisió veu/silenci [default: -40]\n"
-"   -v, --verbose  Show debug information\n"
-"   -h, --help     Show this screen\n"
-"   --version      Show the version of the project\n"
+"   -l REAL, --llindar=REAL     Llindar de decisió veu/silenci en dB [default: 11.2]\n"
+"   -v, --verbose               Show debug information\n"
+"   -h, --help                  Show this screen\n"
+"   --version                   Show the version of the project\n"
 "";
 
 const char usage_pattern[] =
@@ -304,7 +304,7 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, NULL, (char*) "-40", NULL, NULL,
+        0, 0, 0, NULL, (char*) "11.2", NULL, NULL,
         usage_pattern, help_message
     };
     Tokens ts;
@@ -317,7 +317,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
-        {"-ll", "--llindar", 1, 0, NULL},
+        {"-l", "--llindar", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
         {"-w", "--output-wav", 1, 0, NULL}
     };

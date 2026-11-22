@@ -16,7 +16,9 @@ typedef struct {
   VAD_STATE state;
   float sampling_rate;
   unsigned int frame_length;
-  float last_feature; /* for debuggin purposes */
+  float last_feature; /* for debugging purposes */
+  int counter;        /* hangover frame counter */
+  int init_frames;    /* frames count for initial noise estimation */
 } VAD_DATA;
 
 /* Call this function before using VAD: 
