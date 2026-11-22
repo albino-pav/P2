@@ -166,15 +166,19 @@ Ejercicios
 
 > **Respuesta:** En los tramos de silencio vemos que la potencia suele estar entre -25 dB y -10 dB, mientras que cuando hay voz aumenta bastante, llegando a unos 40–65 dB en las vocales. Algunas consonantes tienen menos energía y pueden quedarse cerca de los 30 dB.
 >
-> Por eso, consideramos que un incremento de unos 10–15 dB respecto al ruido de fondo sería suficiente para detectar voz sin confundirla con pequeñas variaciones del ruido. Además, el umbral no sería tan alto como para perder las consonantes más débiles.
+> Por eso, consideramos que un incremento de unos 10–15 dB respecto al nivel de silencio inicial sería suficiente para detectar voz sin confundirla con pequeñas variaciones del ruido. Además, el umbral no sería tan alto como para perder las consonantes más débiles.
 
 
+
+
+  * Duración mínima razonable de los segmentos de voz y silencio.
 
 > **Respuesta:**
 >
-> - **Voz (V):** La palabra más corta que hemos grabado, "Hola", dura aproximadamente 280 ms. Como trabajamos con tramas de 10 ms, creemos que con unas 3–5 tramas seguidas (30–50 ms) ya podemos confirmar que hay voz y evitar detectar ruidos muy puntuales.
+> - **Voz (V):** El segmento de voz más corto que hemos etiquetado, correspondiente a "Hola", dura unos 325 ms. Como trabajamos con tramas de 10 ms, hemos decidido esperar 3 tramas seguidas (30 ms) para confirmar que hay voz y evitar detectar ruidos puntuales. Si la potencia aumenta mucho de golpe, el detector entra directamente en voz.
 >
-> - **Silencio (S):** La pausa más corta que hemos etiquetado dura unos 180 ms. También hay que tener en cuenta que algunas consonantes, como la /p/, /t/ o /k/, pueden provocar caídas breves de potencia sin que realmente termine la palabra. Por eso, consideramos razonable exigir unos 150–200 ms para confirmar un silencio. En la implementación hemos acabado utilizando 120 ms para no alargar demasiado los finales de voz.
+> - **Silencio (S):** La pausa más corta entre segmentos de voz dura unos 155 ms. También hay que tener en cuenta que algunas consonantes, como la /p/, /t/ o /k/, pueden provocar caídas breves de potencia sin que termine la palabra. Por eso, hemos establecido una espera de 120 ms antes de volver a silencio, para no cortar palabras pero seguir detectando las pausas más cortas.
+
 
   * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
 
