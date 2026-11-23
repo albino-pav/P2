@@ -1,49 +1,42 @@
-#ifndef _VAD_H
-#define _VAD_H
+#ifndef VAD_H
+#define VAD_H
 #include <stdio.h>
 
-/* TODO: add the needed states */
-typedef enum {ST_UNDEF=0, ST_SILENCE, ST_VOICE, ST_INIT} VAD_STATE;
-
-/* Return a string label associated to each state */
-const char *state2str(VAD_STATE st);
-
-/* TODO: add the variables needed to control the VAD 
-   (counts, thresholds, etc.) */
+// Distingeixo els estats confirmats dels dos estats provisionals.
+typedef enum {ST_UNDEF, ST_SILENCE, ST_VOICE, ST_INIT, ST_MAYBE_VOICE, ST_MAYBE_SILENCE} VAD_STATE;
 
 typedef struct {
-  VAD_STATE state;
-  float sampling_rate;
-  unsigned int frame_length;
-  float last_feature; /* for debuggin purposes */
+    VAD_STATE state;
+    float sampling_rate;
+    unsigned int frame_length;
+    int initial_frames;
+    float initial_max;
+    float initial_sum;
+    float noise;
+    float margin_db;
+    int init_frames;
+    int min_voice;
+    int min_silence;
+    float noise_alpha;
+    float silence_gap;
+    int trim_initial;
+    int allow_dip;
+    int remove_dc;
+    int backdate;
+    int rescue_zcr, confirm_high, guard_noise;
+    float zcr_threshold, zcr_discount, confirm_boost, noise_update_margin;
+    int max_wait, elapsed, high_seen;
+    int asymmetric_noise, floor_noise, direct_voice;
+    float down_factor, voice_range, voice_level, voice_alpha;
+    int voice_dips;
+    int count;
+    float last_feature;
 } VAD_DATA;
 
-/* Call this function before using VAD: 
-   It should return allocated and initialized values of vad_data
-
-   sampling_rate: ... the sampling rate */
+const char *state2str(VAD_STATE state);
 VAD_DATA *vad_open(float sampling_rate);
-
-/* vad works frame by frame.
-   This function returns the frame size so that the program knows how
-   many samples have to be provided */
-unsigned int vad_frame_size(VAD_DATA *);
-
-/* Main function. For each 'time', compute the new state 
-   It returns:
-    ST_UNDEF   (0) : undefined; it needs more frames to take decission
-    ST_SILENCE (1) : silence
-    ST_VOICE   (2) : voice
-
-    x: input frame
-       It is assumed the length is frame_length */
-VAD_STATE vad(VAD_DATA *vad_data, float *x);
-
-/* Free memory
-   Returns the state of the last (undecided) states. */
-VAD_STATE vad_close(VAD_DATA *vad_data);
-
-/* Print actual state of vad, for debug purposes */
-void vad_show_state(const VAD_DATA *, FILE *);
-
+unsigned int vad_frame_size(VAD_DATA *data);
+VAD_STATE vad(VAD_DATA *data, float *x);
+VAD_STATE vad_close(VAD_DATA *data);
+void vad_show_state(const VAD_DATA *data, FILE *out);
 #endif

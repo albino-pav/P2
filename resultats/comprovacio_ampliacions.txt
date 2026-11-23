@@ -1,0 +1,3 @@
+OK: 115 gravacions: mateixa durada, freqüència i format; veu idèntica i silenci a zero.
+OK: 8, 16 i 48 kHz; PCM de 8/16/24/32 bits, float i double; silencis curts i final incomplet.
+OK: rebutjo sortides iguals a l’entrada o a les etiquetes, enllaços i carpetes inexistents.

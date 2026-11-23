@@ -7,3 +7,10 @@ __MAC*
 *bak
 *~
 db.v4/
+__pycache__/
+resultats/db/
+resultats/*.ps
+resultats/*.pdf
+resultats/*.vad
+# Conservo els resums dels escombratges i deixo els logs detallats nous en local.
+resultats/evaluacio_llindar_*.txt

@@ -12,13 +12,43 @@
 
 typedef struct {
     /* options without arguments */
+    int confirma_alt;
+    int entrada_directa;
     int help;
+    int limita_soroll;
+    int permet_baixada;
+    int rescat_zcr;
+    int sense_baixada;
+    int sense_confirmacio;
+    int sense_dc;
+    int sense_retroces;
+    int sense_terra;
+    int sense_zcr;
+    int soroll_asimetric;
+    int soroll_simetric;
+    int terra_soroll;
+    int treu_dc;
+    int treu_pic;
     int verbose;
     int version;
     /* options with arguments */
+    char *alfa;
+    char *espera;
+    char *factor_baixada;
+    char *frame_ms;
+    char *histeresi;
+    char *inici;
     char *input_wav;
+    char *llindar;
+    char *marge_soroll;
     char *output_vad;
     char *output_wav;
+    char *pujada;
+    char *rang_soroll;
+    char *rebaixa_zcr;
+    char *silenci;
+    char *veu;
+    char *zcr;
     /* special */
     const char *usage_pattern;
     const char *help_message;
@@ -28,14 +58,44 @@ const char help_message[] =
 "VAD - Voice Activity Detector\n"
 "\n"
 "Usage:\n"
-"   vad [options] -i <input-wav> -o <output-vad> [-w <output-wav>]\n"
+"   vad [options] -i <input-wav> -o <output-vad>\n"
 "   vad (-h | --help)\n"
 "   vad --version\n"
 "\n"
 "Options:\n"
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
-"   -w FILE, --output-wav=FILE  WAVE file with silences cleared\n"
+"   -w FILE, --output-wav=FILE  WAVE de sortida amb els silencis a zero\n"
+"   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 7]\n"
+"   --inici=N  Blocs per calcular el soroll inicial [default: 1]\n"
+"   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 5]\n"
+"   --silenci=N  Blocs baixos per confirmar silenci; 1 vol dir sense espera [default: 8]\n"
+"   --alfa=X  Actualitzacio del soroll; 0 vol dir valor fix [default: 0.0023082305]\n"
+"   --histeresi=DB  Diferencia entre entrada i sortida de veu [default: 0]\n"
+"   --treu-pic  Deixa fora el bloc inicial mes fort\n"
+"   --permet-baixada  Permet un bloc baix mentre confirma veu (activat per defecte)\n"
+"   --treu-dc  Resta la mitjana de cada bloc abans de calcular la potencia (activat per defecte)\n"
+"   --sense-retroces  Posa el canvi quan el confirma, sense tornar enrere\n"
+"   --rescat-zcr  Permet veu fluixa amb ZCR alt i potencia suficient (activat per defecte)\n"
+"   --confirma-alt  Exigeix arribar a un segon llindar per confirmar veu (activat per defecte)\n"
+"   --limita-soroll  Actualitza el soroll nomes amb blocs propers al soroll estimat\n"
+"   --zcr=HZ  Llindar de ZCR [default: 1750]\n"
+"   --rebaixa-zcr=DB  Rebaixa de potencia per al rescat ZCR [default: 3.625]\n"
+"   --pujada=DB  Increment per al llindar de confirmacio [default: 6]\n"
+"   --espera=N  Maxim de blocs per confirmar veu [default: 15]\n"
+"   --marge-soroll=DB  Marge per actualitzar el soroll [default: 2]\n"
+"   --soroll-asimetric  Adapta mes rapid el soroll quan baixa (activat per defecte)\n"
+"   --terra-soroll  Limita el soroll segons el nivell estimat de veu (activat per defecte)\n"
+"   --entrada-directa  Un bloc fort pot confirmar veu sense esperar\n"
+"   --factor-baixada=X  Factor extra per seguir baixades de soroll [default: 9.25]\n"
+"   --rang-soroll=DB  Diferencia maxima entre veu i soroll [default: 41.25]\n"
+"   --frame-ms=MS  Durada del bloc en ms [default: 20]\n"
+"   --sense-baixada  Desactiva la baixada curta permesa\n"
+"   --sense-dc  Desactiva la resta de la mitjana\n"
+"   --sense-zcr  Desactiva el rescat ZCR\n"
+"   --sense-confirmacio  Desactiva el llindar alt de confirmacio\n"
+"   --soroll-simetric  Fa servir el mateix ritme en pujades i baixades\n"
+"   --sense-terra  Desactiva el limit segons el nivell de veu\n"
 "   -v, --verbose  Show debug information\n"
 "   -h, --help     Show this screen\n"
 "   --version      Show the version of the project\n"
@@ -43,7 +103,7 @@ const char help_message[] =
 
 const char usage_pattern[] =
 "Usage:\n"
-"   vad [options] -i <input-wav> -o <output-vad> [-w <output-wav>]\n"
+"   vad [options] -i <input-wav> -o <output-vad>\n"
 "   vad (-h | --help)\n"
 "   vad --version";
 
@@ -108,6 +168,8 @@ Tokens* tokens_move(Tokens *ts) {
  */
 
 int parse_doubledash(Tokens *ts, Elements *elements) {
+    (void) ts;  // Indico que aquesta funció del codi base no fa servir el primer argument.
+    (void) elements;  // Evito l'avís del segon argument no utilitzat.
     //int n_commands = elements->n_commands;
     //int n_arguments = elements->n_arguments;
     //Command *commands = elements->commands;
@@ -264,21 +326,95 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
                    !strcmp(option->olong, "--version")) {
             printf("%s\n", version);
             return 1;
+        } else if (!strcmp(option->olong, "--confirma-alt")) {
+            args->confirma_alt = option->value;
+        } else if (!strcmp(option->olong, "--entrada-directa")) {
+            args->entrada_directa = option->value;
         } else if (!strcmp(option->olong, "--help")) {
             args->help = option->value;
+        } else if (!strcmp(option->olong, "--limita-soroll")) {
+            args->limita_soroll = option->value;
+        } else if (!strcmp(option->olong, "--permet-baixada")) {
+            args->permet_baixada = option->value;
+        } else if (!strcmp(option->olong, "--rescat-zcr")) {
+            args->rescat_zcr = option->value;
+        } else if (!strcmp(option->olong, "--sense-baixada")) {
+            args->sense_baixada = option->value;
+        } else if (!strcmp(option->olong, "--sense-confirmacio")) {
+            args->sense_confirmacio = option->value;
+        } else if (!strcmp(option->olong, "--sense-dc")) {
+            args->sense_dc = option->value;
+        } else if (!strcmp(option->olong, "--sense-retroces")) {
+            args->sense_retroces = option->value;
+        } else if (!strcmp(option->olong, "--sense-terra")) {
+            args->sense_terra = option->value;
+        } else if (!strcmp(option->olong, "--sense-zcr")) {
+            args->sense_zcr = option->value;
+        } else if (!strcmp(option->olong, "--soroll-asimetric")) {
+            args->soroll_asimetric = option->value;
+        } else if (!strcmp(option->olong, "--soroll-simetric")) {
+            args->soroll_simetric = option->value;
+        } else if (!strcmp(option->olong, "--terra-soroll")) {
+            args->terra_soroll = option->value;
+        } else if (!strcmp(option->olong, "--treu-dc")) {
+            args->treu_dc = option->value;
+        } else if (!strcmp(option->olong, "--treu-pic")) {
+            args->treu_pic = option->value;
         } else if (!strcmp(option->olong, "--verbose")) {
             args->verbose = option->value;
         } else if (!strcmp(option->olong, "--version")) {
             args->version = option->value;
+        } else if (!strcmp(option->olong, "--alfa")) {
+            if (option->argument)
+                args->alfa = option->argument;
+        } else if (!strcmp(option->olong, "--espera")) {
+            if (option->argument)
+                args->espera = option->argument;
+        } else if (!strcmp(option->olong, "--factor-baixada")) {
+            if (option->argument)
+                args->factor_baixada = option->argument;
+        } else if (!strcmp(option->olong, "--frame-ms")) {
+            if (option->argument)
+                args->frame_ms = option->argument;
+        } else if (!strcmp(option->olong, "--histeresi")) {
+            if (option->argument)
+                args->histeresi = option->argument;
+        } else if (!strcmp(option->olong, "--inici")) {
+            if (option->argument)
+                args->inici = option->argument;
         } else if (!strcmp(option->olong, "--input-wav")) {
             if (option->argument)
                 args->input_wav = option->argument;
+        } else if (!strcmp(option->olong, "--llindar")) {
+            if (option->argument)
+                args->llindar = option->argument;
+        } else if (!strcmp(option->olong, "--marge-soroll")) {
+            if (option->argument)
+                args->marge_soroll = option->argument;
         } else if (!strcmp(option->olong, "--output-vad")) {
             if (option->argument)
                 args->output_vad = option->argument;
         } else if (!strcmp(option->olong, "--output-wav")) {
             if (option->argument)
                 args->output_wav = option->argument;
+        } else if (!strcmp(option->olong, "--pujada")) {
+            if (option->argument)
+                args->pujada = option->argument;
+        } else if (!strcmp(option->olong, "--rang-soroll")) {
+            if (option->argument)
+                args->rang_soroll = option->argument;
+        } else if (!strcmp(option->olong, "--rebaixa-zcr")) {
+            if (option->argument)
+                args->rebaixa_zcr = option->argument;
+        } else if (!strcmp(option->olong, "--silenci")) {
+            if (option->argument)
+                args->silenci = option->argument;
+        } else if (!strcmp(option->olong, "--veu")) {
+            if (option->argument)
+                args->veu = option->argument;
+        } else if (!strcmp(option->olong, "--zcr")) {
+            if (option->argument)
+                args->zcr = option->argument;
         }
     }
     /* commands */
@@ -299,7 +435,11 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
 
 DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
-        0, 0, 0, NULL, NULL, NULL,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*)
+        "0.0023082305", (char*) "15", (char*) "9.25", (char*) "20", (char*) "0",
+        (char*) "1", NULL, (char*) "7", (char*) "2", NULL, NULL, (char*) "6",
+        (char*) "41.25", (char*) "3.625", (char*) "8", (char*) "5", (char*)
+        "1750",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -308,14 +448,44 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     Argument arguments[] = {
     };
     Option options[] = {
+        {NULL, "--confirma-alt", 0, 0, NULL},
+        {NULL, "--entrada-directa", 0, 0, NULL},
         {"-h", "--help", 0, 0, NULL},
+        {NULL, "--limita-soroll", 0, 0, NULL},
+        {NULL, "--permet-baixada", 0, 0, NULL},
+        {NULL, "--rescat-zcr", 0, 0, NULL},
+        {NULL, "--sense-baixada", 0, 0, NULL},
+        {NULL, "--sense-confirmacio", 0, 0, NULL},
+        {NULL, "--sense-dc", 0, 0, NULL},
+        {NULL, "--sense-retroces", 0, 0, NULL},
+        {NULL, "--sense-terra", 0, 0, NULL},
+        {NULL, "--sense-zcr", 0, 0, NULL},
+        {NULL, "--soroll-asimetric", 0, 0, NULL},
+        {NULL, "--soroll-simetric", 0, 0, NULL},
+        {NULL, "--terra-soroll", 0, 0, NULL},
+        {NULL, "--treu-dc", 0, 0, NULL},
+        {NULL, "--treu-pic", 0, 0, NULL},
         {"-v", "--verbose", 0, 0, NULL},
         {NULL, "--version", 0, 0, NULL},
+        {NULL, "--alfa", 1, 0, NULL},
+        {NULL, "--espera", 1, 0, NULL},
+        {NULL, "--factor-baixada", 1, 0, NULL},
+        {NULL, "--frame-ms", 1, 0, NULL},
+        {NULL, "--histeresi", 1, 0, NULL},
+        {NULL, "--inici", 1, 0, NULL},
         {"-i", "--input-wav", 1, 0, NULL},
+        {"-l", "--llindar", 1, 0, NULL},
+        {NULL, "--marge-soroll", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
-        {"-w", "--output-wav", 1, 0, NULL}
+        {"-w", "--output-wav", 1, 0, NULL},
+        {NULL, "--pujada", 1, 0, NULL},
+        {NULL, "--rang-soroll", 1, 0, NULL},
+        {NULL, "--rebaixa-zcr", 1, 0, NULL},
+        {NULL, "--silenci", 1, 0, NULL},
+        {NULL, "--veu", 1, 0, NULL},
+        {NULL, "--zcr", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 6, commands, arguments, options};
+    Elements elements = {0, 0, 36, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))
