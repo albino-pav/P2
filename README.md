@@ -331,7 +331,7 @@ ninja -C bin
 - Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o
   parámetros alternativos, etc.).
 
-**Resposta.** Hem anat provant les idees per separat i juntes. A [IDEES.md](IDEES.md) hi ha l’origen de cada idea, les taules i els resultats. Hi indiquem també les idees que hem vist als altres PR, especialment el rescat amb ZCR, la confirmació amb un llindar alt i les dues velocitats del soroll.
+**Resposta.** Hem anat provant les idees per separat i juntes. A [IDEES.md](IDEES.md) hi ha l’origen de cada idea, les taules i els resultats. Hi indiquem també les idees que hem vist als altres PR, com el rescat amb ZCR i les dues velocitats del soroll. La confirmació amb llindar alt i la decisió diferida ja s’expliquen als apartats 1.3.2 i 1.3.3 del PDF de la pràctica.
 
 #### Com ha anat canviant el resultat
 

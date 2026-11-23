@@ -20,7 +20,7 @@ He provat de treure el pic inicial, permetre una baixada curta i restar la mitja
 
 També he fet el programa que prova les combinacions i va ajustant els valors. És la manera que he fet servir per comparar-les i buscar una configuració que vagi millor.
 
-Del seguiment del soroll, la histèresi i tornar al primer bloc pendent falta confirmar si s’havien proposat a classe. No ho he trobat explícitament al README original i ho deixo indicat a la taula.
+El PDF també dona idees que no surten tan detallades al README: als apartats 1.2 i 1.3.3 explica el retorn al primer bloc pendent, i a l’1.3.2 la confirmació amb un llindar alt i un temps màxim. El seguiment del soroll i la variant amb llindars diferents per entrar i sortir queden com a decisions del programa, amb l’origen de classe per confirmar.
 
 | Idea | D’on surt | Què n’he fet |
 |---|---|---|
@@ -31,13 +31,13 @@ Del seguiment del soroll, la histèresi i tornar al primer bloc pendent falta co
 | Opcions amb `docopt_c` | Ampliació de l’enunciat | Fet |
 | Cancel·lació del silenci | Ampliació de l’enunciat | No fet |
 | Anar actualitzant el soroll | Decisió del programa; origen de classe per confirmar | Ho provo activat i desactivat |
-| Histèresi | Decisió del programa; origen de classe per confirmar | Ho provo amb un llindar o amb dos |
-| Tornar al primer bloc pendent | Decisió del programa; origen de classe per confirmar | Ho comparo amb posar el límit quan es confirma |
+| Llindars diferents per entrar i sortir | Variant del programa; origen de classe per confirmar | Ho provo amb un llindar o amb dos |
+| Tornar al primer bloc pendent | Enunciat PDF, apartats 1.2 i 1.3.3 | Ho comparo amb posar el límit quan es confirma |
 | Treure el pic inicial | Prova addicional | Provada sola i en combinacions |
 | Permetre una baixada curta | Prova addicional | Provada sola i en combinacions |
 | Treure la mitjana del bloc | Prova addicional | Provada sola i en combinacions |
 | Rescat amb ZCR | Inspirat en Pegueroles–Riera, PR #4 | El provo com a decisió, a més de dibuixar-lo |
-| Confirmació amb llindar alt i temps màxim | Inspirat en Arbelo–Moreno i Galvan–Fernandez, PR #7 i #3 | Ho provo mantenint la duració mínima de veu |
+| Confirmació amb llindar alt i temps màxim | Enunciat PDF, apartat 1.3.2; també als PR #7 i #3 | Ho provo mantenint la duració mínima de veu |
 | Limitar l’actualització del soroll | Inspirat en Pegueroles–Riera, PR #4 | Només actualitzo amb blocs prou propers al soroll |
 | Script de combinacions i cerca dels valors | Forma addicional de fer les proves | Fet; guardo els resultats i el recorregut |
 
@@ -111,7 +111,7 @@ No accepto qualsevol bloc amb ZCR alt: també demano prou potència. Faig servir
 
 ### 10. Arribar a un llindar alt abans que passi massa temps
 
-La idea surt d’[Arbelo–Moreno, PR #7](https://github.com/albino-pav/P2/pull/7) i [Galvan–Fernandez, PR #3](https://github.com/albino-pav/P2/pull/3). Un primer llindar deixa començar un intent de veu. Per confirmar-lo, algun bloc ha d’arribar a un segon llindar més alt.
+La idea ja està explicada a l’apartat 1.3.2 del [PDF de la pràctica](p2_vad.pdf). Per provar-la també m’he fixat en [Arbelo–Moreno, PR #7](https://github.com/albino-pav/P2/pull/7) i [Galvan–Fernandez, PR #3](https://github.com/albino-pav/P2/pull/3). Un primer llindar deixa començar un intent de veu. Per confirmar-lo, algun bloc ha d’arribar a un segon llindar més alt.
 
 A la meva prova continuo exigint el nombre mínim de blocs de veu. Un únic pic fort no se salta aquesta espera. Si no he confirmat la veu dins del temps màxim, descarto l’intent.
 
