@@ -388,3 +388,5 @@ el usado, sin más opciones, para realizar la evaluación *ciega* del sistema.
 
 
 **Comprovació de l’entrega.** La branca és `albareda-lopez`. El 96,910 % s’obté sense passar cap paràmetre del detector. Les etiquetes `arxiu/jordi-albareda-combinacions` i `arxiu/jordi-albareda-proves-pendents` conserven els scripts i els resultats de les cerques. Els enllaços d’[IDEES.md](IDEES.md) continuen funcionant.
+
+**Fitxers per a Atenea.** ATENEA no em deixa penjar els 2 docus. Els deixem també en aquest repositori: [pav_4151.wav](pav_4151.wav) i [pav_4151.lab](pav_4151.lab).
