@@ -5,3 +5,4 @@ OK: TOTAL amb els valors per defecte: 96,910 %.
 OK: opcions per desactivar les millores i rebuig d’opcions contradictòries.
 OK: la gravació amb el nom d’entrega conserva totes les mostres i les marques manuals.
 OK: enllaços locals i figures del README presents.
+OK: ampliacions d’opcions i WAVE amb silenci a zero completades; mostres de veu conservades.

@@ -42,6 +42,7 @@ typedef struct {
     char *llindar;
     char *marge_soroll;
     char *output_vad;
+    char *output_wav;
     char *pujada;
     char *rang_soroll;
     char *rebaixa_zcr;
@@ -64,6 +65,7 @@ const char help_message[] =
 "Options:\n"
 "   -i FILE, --input-wav=FILE   WAVE file for voice activity detection\n"
 "   -o FILE, --output-vad=FILE  Label file with the result of VAD\n"
+"   -w FILE, --output-wav=FILE  WAVE de sortida amb els silencis a zero\n"
 "   -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 7]\n"
 "   --inici=N  Blocs per calcular el soroll inicial [default: 1]\n"
 "   --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 5]\n"
@@ -392,6 +394,9 @@ int elems_to_args(Elements *elements, DocoptArgs *args, bool help,
         } else if (!strcmp(option->olong, "--output-vad")) {
             if (option->argument)
                 args->output_vad = option->argument;
+        } else if (!strcmp(option->olong, "--output-wav")) {
+            if (option->argument)
+                args->output_wav = option->argument;
         } else if (!strcmp(option->olong, "--pujada")) {
             if (option->argument)
                 args->pujada = option->argument;
@@ -432,8 +437,9 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
     DocoptArgs args = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char*)
         "0.0023082305", (char*) "15", (char*) "9.25", (char*) "20", (char*) "0",
-        (char*) "1", NULL, (char*) "7", (char*) "2", NULL, (char*) "6", (char*)
-        "41.25", (char*) "3.625", (char*) "8", (char*) "5", (char*) "1750",
+        (char*) "1", NULL, (char*) "7", (char*) "2", NULL, NULL, (char*) "6",
+        (char*) "41.25", (char*) "3.625", (char*) "8", (char*) "5", (char*)
+        "1750",
         usage_pattern, help_message
     };
     Tokens ts;
@@ -471,6 +477,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {"-l", "--llindar", 1, 0, NULL},
         {NULL, "--marge-soroll", 1, 0, NULL},
         {"-o", "--output-vad", 1, 0, NULL},
+        {"-w", "--output-wav", 1, 0, NULL},
         {NULL, "--pujada", 1, 0, NULL},
         {NULL, "--rang-soroll", 1, 0, NULL},
         {NULL, "--rebaixa-zcr", 1, 0, NULL},
@@ -478,7 +485,7 @@ DocoptArgs docopt(int argc, char *argv[], bool help, const char *version) {
         {NULL, "--veu", 1, 0, NULL},
         {NULL, "--zcr", 1, 0, NULL}
     };
-    Elements elements = {0, 0, 35, commands, arguments, options};
+    Elements elements = {0, 0, 36, commands, arguments, options};
 
     ts = tokens_new(argc, argv);
     if (parse_args(&ts, &elements))

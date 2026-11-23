@@ -10,7 +10,7 @@ El codi de les combinacions és a [jordi-albareda-combinacions](https://github.c
 
 Al [README original de la pràctica](https://github.com/victor836768/P2/blob/main/README.md) es demana mirar la potència, posar un llindar respecte del silenci inicial i triar duracions mínimes de veu i silenci. També es demana mirar el ZCR i comentar què se’n pot treure.
 
-L’enunciat també proposa ampliacions, com les opcions amb `docopt_c` i la cancel·lació del silenci. No són el mateix que la part bàsica. He fet servir les opcions, però no he fet la cancel·lació del silenci.
+L’enunciat també proposa ampliacions, com les opcions amb `docopt_c` i la cancel·lació del silenci. No són el mateix que la part bàsica. A l’entrega hi ha les opcions i també la cancel·lació del silenci amb `-w`.
 
 Ajustar els valors i mirar el TOTAL també forma part de la pràctica. Els nombres que he acabat fent servir surten de les proves; no són valors fixats per l’enunciat.
 
@@ -29,7 +29,7 @@ El PDF també dona idees que no surten tan detallades al README: als apartats 1.
 | Mirar el ZCR | Part bàsica de l’enunciat | El dibuixo; fer-lo servir per al rescat és una prova a part |
 | Ajustar valors i avaluar el TOTAL | Enunciat | Ho comprovo amb `db.v4` i l’avaluador de la pràctica |
 | Opcions amb `docopt_c` | Ampliació de l’enunciat | Fet |
-| Cancel·lació del silenci | Ampliació de l’enunciat | No fet |
+| Cancel·lació del silenci | Ampliació de l’enunciat | Fet amb `-w`; conserva la durada i posa els silencis a zero |
 | Anar actualitzant el soroll | Decisió del programa; origen de classe per confirmar | Ho provo activat i desactivat |
 | Llindars diferents per entrar i sortir | Variant del programa; origen de classe per confirmar | Ho provo amb un llindar o amb dos |
 | Tornar al primer bloc pendent | Enunciat PDF, apartats 1.2 i 1.3.3 | Ho comparo amb posar el límit quan es confirma |
@@ -2414,6 +2414,6 @@ Les tres proves inicials per separat també es conserven a `arxiu/jordi-albareda
 
 A la base d’entrega el ZCR només es dibuixa. A la branca de combinacions ara també pot ajudar a decidir si hi ha veu. L’amplitud mitjana continua sense intervenir en la decisió.
 
-Les opcions de `docopt_c`, `cardem-li`, els rànquings i les gràfiques ajuden a fer i explicar les proves. No són canvis en la manera de detectar veu. Tampoc he implementat la cancel·lació del silenci.
+Les opcions de `docopt_c`, `cardem-li`, els rànquings i les gràfiques ajuden a fer i explicar les proves. No són canvis en la manera de detectar veu. A l’entrega també hi ha `-w` per escriure un WAVE amb els silencis a zero. Aquesta sortida no canvia les decisions del detector.
 
 La lectura correcta del fitxer, la durada final, les etiquetes S/V i el tractament dels errors es mantenen a totes les proves. No els desactivo per intentar pujar la puntuació.

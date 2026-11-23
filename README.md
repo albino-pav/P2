@@ -303,7 +303,28 @@ Els valors s’han ajustat amb aquesta mateixa base. Caldrien àudios nous per v
   la que se vea con claridad la señal antes y después de la cancelación (puede que `wavesurfer` no sea la
   mejor opción para esto, ya que no es capaz de visualizar varias señales al mismo tiempo).
 
-**Resposta.** Aquesta ampliació no l’hem implementat. El programa genera les etiquetes de veu i silenci, però no escriu un WAVE amb els silencis posats a zero.
+**Resposta.** Hem afegit l’opció `-w` / `--output-wav`. El programa escriu un WAVE nou: conserva les mostres dels segments de veu i posa a zero les dels segments de silenci.
+
+```sh
+bin/vad -i pav_4151.wav -o pav_4151.vad -w pav_4151_sense_soroll.wav
+```
+
+#### Comparació abans i després
+
+![Senyal original i senyal amb els silencis a zero](img/cancelacio_silenci.png)
+
+El fitxer continua durant **9,536 s**. No hem retallat les pauses ni canviat el volum de la veu. Si el detector marca un tros com a silenci, aquell tros queda a zero encara que les marques manuals diguin una altra cosa.
+
+Esperem que el detector confirmi cada canvi abans d’escriure el segment. Així els blocs dubtosos es tracten igual que al fitxer d’etiquetes. Fem servir una segona lectura del mateix àudio per copiar les mostres originals de veu, sense carregar tot el fitxer en memòria.
+
+Hem comprovat les 115 gravacions: les mostres de veu es conserven exactament i les de silenci són zero. Les etiquetes són les mateixes amb `-w` i sense. També hem provat àudios curts, finals incomplets i diferents formats PCM. El resum és a [comprovacio_ampliacions.txt](resultats/comprovacio_ampliacions.txt).
+
+Per repetir aquesta comprovació i regenerar la figura:
+
+```sh
+python3 scripts/comprova_ampliacions.py
+python3 scripts/grafica_cancelacio.py
+```
 
 
 #### Gestión de las opciones del programa usando `docopt_c`

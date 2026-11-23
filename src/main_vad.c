@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <math.h>
 #include <sndfile.h>
+#include <sys/stat.h>
 #include "vad.h"
 #include "vad_docopt.h"
 
@@ -23,6 +24,42 @@ static int read_number(const char *text, float *value) {
     errno = 0;
     *value = strtof(text, &end);
     return end != text && *end == '\0' && !errno && isfinite(*value);
+}
+
+static int same_file(const char *a, const char *b) {
+    struct stat x, y;
+    return strcmp(a, b) == 0 ||
+        (stat(a, &x) == 0 && stat(b, &y) == 0 && x.st_dev == y.st_dev && x.st_ino == y.st_ino);
+}
+
+// Escric només els segments que ja tenen una decisió definitiva.
+static int write_segment(SNDFILE *input, SNDFILE *output, void *samples, int floating,
+                         unsigned int size, sf_count_t start, sf_count_t end, VAD_STATE state) {
+    if (output == NULL) return 0;
+    if (state == ST_VOICE && sf_seek(input, start, SEEK_SET) != start) return 1;
+    while (start < end) {
+        sf_count_t count = end - start;
+        if (count > size) count = size;
+        if (floating) {
+            double *values = samples;
+            if (state == ST_VOICE) {
+                if (sf_read_double(input, values, count) != count) return 1;
+            } else {
+                for (sf_count_t i = 0; i < count; i++) values[i] = 0.0;
+            }
+            if (sf_write_double(output, values, count) != count) return 1;
+        } else {
+            int *values = samples;
+            if (state == ST_VOICE) {
+                if (sf_read_int(input, values, count) != count) return 1;
+            } else {
+                for (sf_count_t i = 0; i < count; i++) values[i] = 0;
+            }
+            if (sf_write_int(output, values, count) != count) return 1;
+        }
+        start += count;
+    }
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -70,7 +107,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s\n", args.usage_pattern);
         return 1;
     }
-    if (strcmp(args.input_wav, args.output_vad) == 0) {
+    if (same_file(args.input_wav, args.output_vad) ||
+        (args.output_wav && (same_file(args.input_wav, args.output_wav) || same_file(args.output_vad, args.output_wav)))) {
         fprintf(stderr, "L'entrada i la sortida han de tenir noms diferents.\n");
         return 1;
     }
@@ -140,6 +178,34 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    SNDFILE *copy = NULL, *clean = NULL;
+    void *samples = NULL;
+    int subtype = info.format & SF_FORMAT_SUBMASK;
+    int floating = subtype == SF_FORMAT_FLOAT || subtype == SF_FORMAT_DOUBLE;
+    if (args.output_wav) {
+        SF_INFO copy_info = {0};
+        SF_INFO output_info = info;
+        output_info.format = SF_FORMAT_WAV | (info.format & SF_FORMAT_SUBMASK);
+        output_info.frames = 0;
+        if (!same_file(args.output_vad, args.output_wav) && sf_format_check(&output_info)) {
+            copy = sf_open(args.input_wav, SFM_READ, &copy_info);
+            samples = malloc(frame_size * sizeof(double));
+            if (copy && samples) clean = sf_open(args.output_wav, SFM_WRITE, &output_info);
+        }
+        if (!copy || !samples || !clean) {
+            fprintf(stderr, "No puc preparar el WAVE de sortida.\n");
+            if (copy) sf_close(copy);
+            if (clean) sf_close(clean);
+            free(samples);
+            fclose(labels);
+            free(buffer);
+            vad_close(data);
+            sf_close(audio);
+            return 1;
+        }
+    }
+
+    int result = 0;
     double frame_time = (double) frame_size / info.samplerate;
     unsigned int t = 0, last_t = 0, pending = 0;
     VAD_STATE last_state = ST_UNDEF;
@@ -160,6 +226,8 @@ int main(int argc, char *argv[]) {
                 last_state = state;
             } else if (state != last_state) {
                 if (start > last_t) {
+                    if (write_segment(copy, clean, samples, floating, frame_size,
+                                      (sf_count_t)last_t * frame_size, (sf_count_t)start * frame_size, last_state)) result = 1;
                     fprintf(labels, "%.6f\t%.6f\t%s\n", last_t * frame_time, start * frame_time, state2str(last_state));
                 }
                 last_t = start;
@@ -170,17 +238,21 @@ int main(int argc, char *argv[]) {
         t++;
     }
 
-    int result = 0;
     if (sf_error(audio) != SF_ERR_NO_ERROR) result = 1;
     VAD_STATE final_state = vad_close(data);
     if (last_state == ST_UNDEF) last_state = final_state;
     // Incloc també les mostres que no omplen un bloc sencer.
     double end = ((double) t * frame_size + n_read) / info.samplerate;
     if (end > last_t * frame_time) {
+        if (write_segment(copy, clean, samples, floating, frame_size, (sf_count_t)last_t * frame_size,
+                          (sf_count_t)t * frame_size + n_read, last_state)) result = 1;
         fprintf(labels, "%.6f\t%.6f\t%s\n", last_t * frame_time, end, state2str(last_state));
     }
     if (ferror(labels)) result = 1;
     if (fclose(labels) != 0) result = 1;
+    if (copy && sf_close(copy) != 0) result = 1;
+    if (clean && sf_close(clean) != 0) result = 1;
+    free(samples);
     free(buffer);
     sf_close(audio);
     if (result != 0) fprintf(stderr, "Error en llegir o escriure les dades.\n");

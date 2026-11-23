@@ -8,6 +8,7 @@ Usage:
 Options:
    -i FILE, --input-wav=FILE   WAVE file for voice activity detection
    -o FILE, --output-vad=FILE  Label file with the result of VAD
+   -w FILE, --output-wav=FILE  WAVE de sortida amb els silencis a zero
    -l DB, --llindar=DB  Marge en dB per sobre del soroll [default: 7]
    --inici=N  Blocs per calcular el soroll inicial [default: 1]
    --veu=N  Blocs alts per confirmar veu; 1 vol dir sense espera [default: 5]
