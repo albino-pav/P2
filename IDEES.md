@@ -2,7 +2,7 @@
 
 Aquí he anat apuntant les idees del detector i els resultats de les proves. Algunes ja venien de la pràctica i altres les he afegit després.
 
-El codi de les combinacions és a [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/jordi-albareda-combinacions). La branca d’entrega és `albareda-lopez`. Hi hem posat la millor configuració de les proves pendents com a predeterminada. Les proves d’aquest fitxer i les referències als valors per defecte corresponen a les branques d’experimentació.
+El codi de les combinacions és a [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/245eb0753b25eba175e232a1193d4332f3ce1e9f-combinacions). La branca d’entrega és `albareda-lopez`. Hi hem posat la millor configuració de les proves pendents com a predeterminada. Les proves d’aquest fitxer i les referències als valors per defecte corresponen a les versions d’experimentació, que es conserven amb etiquetes `arxiu/`. Els enllaços apunten a aquestes versions guardades.
 
 ## D’on surt cada idea
 
@@ -2287,7 +2287,7 @@ La **C1800** és la base. La millor cerca nova és a **C1854**. Amb onze interru
 | C2046 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | 95,199 | — | 96,005 |
 | C2047 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 94,718 | — | 96,039 |
 
-Els valors exactes de cada fila són al [CSV de combinacions ajustades](https://github.com/victor836768/P2/blob/jordi-albareda-combinacions/resultats/combinacions/combinacions_ajustades.csv). Hi ha files repetides perquè algunes idees no fan res quan una altra està apagada.
+Els valors exactes de cada fila són al [CSV de combinacions ajustades](https://github.com/victor836768/P2/blob/245eb0753b25eba175e232a1193d4332f3ce1e9f-combinacions/resultats/combinacions/combinacions_ajustades.csv). Hi ha files repetides perquè algunes idees no fan res quan una altra està apagada.
 <!-- final-matriu-combinacions -->
 
 ## Com ho he comprovat
@@ -2303,7 +2303,7 @@ Tot això és amb `db.v4`, que ja havia fet servir abans. Caldria provar àudios
 <!-- inici-proves-pendents -->
 ## Proves que quedaven pendents
 
-Després de mirar els PR nous he provat quatre idees més a [jordi-albareda-proves-pendents](https://github.com/victor836768/P2/tree/jordi-albareda-proves-pendents).
+Després de mirar els PR nous he provat quatre idees més a [jordi-albareda-proves-pendents](https://github.com/victor836768/P2/tree/245eb0753b25eba175e232a1193d4332f3ce1e9f-proves-pendents).
 
 - **Soroll a dues velocitats:** quan la potència baixa, el soroll es mou més ràpid. Quan puja, mantinc el ritme normal.
 - **Límit del soroll segons la veu:** també estimo el nivell de veu i evito que el soroll quedi massa per sota seu.
@@ -2388,12 +2388,12 @@ El bloc de 120 ms dona un resultat pitjor. Les esperes no es poden ajustar amb g
 | 120 ms | ✓ | ✓ | — | 95,731 % |
 | 120 ms | ✓ | ✓ | ✓ | 95,731 % |
 
-Els valors exactes són al [CSV de les proves pendents](https://github.com/victor836768/P2/blob/jordi-albareda-proves-pendents/resultats/pendents/matriu.csv). Els resultats continuen sent de `db.v4`; falta veure com va amb àudios nous.
+Els valors exactes són al [CSV de les proves pendents](https://github.com/victor836768/P2/blob/245eb0753b25eba175e232a1193d4332f3ce1e9f-proves-pendents/resultats/pendents/matriu.csv). Els resultats continuen sent de `db.v4`; falta veure com va amb àudios nous.
 <!-- final-proves-pendents -->
 
 ## On són les proves
 
-A la branca [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/jordi-albareda-combinacions):
+A la versió arxivada de [jordi-albareda-combinacions](https://github.com/victor836768/P2/tree/245eb0753b25eba175e232a1193d4332f3ce1e9f-combinacions):
 
 - `scripts/prova_combinacions.py`: combinacions i ajust de valors.
 - `scripts/comprova_metodes.py`: àudios petits amb casos coneguts.
@@ -2408,7 +2408,7 @@ A la branca [jordi-albareda-combinacions](https://github.com/victor836768/P2/tre
 - `resultats/combinacions/verificacio.csv`: comparació amb el programa normal i el Perl.
 - `resultats/combinacions/avaluacio_millor.txt`: resultat complet de la millor configuració trobada.
 
-Les tres proves inicials per separat també es conserven a `jordi-albareda-prova-soroll`, `jordi-albareda-prova-baixada` i `jordi-albareda-prova-dc`.
+Les tres proves inicials per separat també es conserven a `arxiu/jordi-albareda-prova-soroll`, `arxiu/jordi-albareda-prova-baixada` i `arxiu/jordi-albareda-prova-dc`.
 
 ## Altres coses del treball
 

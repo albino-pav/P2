@@ -242,7 +242,7 @@ ninja -C bin
 bin/vad -i pav_4151.wav -o pav_4151.vad
 ```
 
-La histèresi d’entrada i sortida, treure el pic inicial, limitar l’actualització als blocs propers al soroll i l’entrada directa queden apagats. Les proves d’aquestes idees es conserven a les branques d’experimentació.
+La histèresi d’entrada i sortida, treure el pic inicial, limitar l’actualització als blocs propers al soroll i l’entrada directa queden apagats. Les proves d’aquestes idees es conserven a les etiquetes d’arxiu.
 
 
 - Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección
@@ -366,4 +366,4 @@ correctamente compilados con la orden `meson bin; ninja -C bin`. El programa gen
 el usado, sin más opciones, para realizar la evaluación *ciega* del sistema.
 
 
-**Comprovació de l’entrega.** La branca és `albareda-lopez`. El 96,910 % s’obté sense passar cap paràmetre del detector. Les branques `jordi-albareda-combinacions` i `jordi-albareda-proves-pendents` conserven els scripts i els resultats de les cerques.
+**Comprovació de l’entrega.** La branca és `albareda-lopez`. El 96,910 % s’obté sense passar cap paràmetre del detector. Les etiquetes `arxiu/jordi-albareda-combinacions` i `arxiu/jordi-albareda-proves-pendents` conserven els scripts i els resultats de les cerques. Els enllaços d’[IDEES.md](IDEES.md) continuen funcionant.
