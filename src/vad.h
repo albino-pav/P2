@@ -2,48 +2,57 @@
 #define _VAD_H
 #include <stdio.h>
 
-/* TODO: add the needed states */
-typedef enum {ST_UNDEF=0, ST_SILENCE, ST_VOICE, ST_INIT} VAD_STATE;
+#define POTENCIA_RUIDO_MINIMA_DB (-65.0F)
+
+typedef enum {
+  ST_UNDEF = 0,
+  ST_SILENCE,
+  ST_VOICE,
+  ST_INIT,
+  ST_MAYBE_VOICE,
+  ST_MAYBE_SILENCE
+} VAD_STATE;
 
 /* Return a string label associated to each state */
 const char *state2str(VAD_STATE st);
-
-/* TODO: add the variables needed to control the VAD 
-   (counts, thresholds, etc.) */
 
 typedef struct {
   VAD_STATE state;
   float sampling_rate;
   unsigned int frame_length;
-  float last_feature; /* for debuggin purposes */
+  float last_feature; /* potencia de la trama para depuracion */
+  float potencia_ruido;
+  float ultima_zcr;
+  float ultimo_ruido_estimado;
+  float ultimo_umbral_voz;
+  float ultimo_umbral_silencio;
+  unsigned int init_frames;
+  unsigned int voice_frames;
+  unsigned int tramas_confirmacion_voz;
+  unsigned int silence_frames;
+  unsigned int contador_tramas;
+  unsigned int indice_trama_actual;
+  /* Tramas para retroceder el limite al confirmar un cambio de estado. */
+  unsigned int retroceso_transicion;
+  float histeresis_db;
+  float margen_voz_clara_db;
+  float tasa_actualizacion_ruido;
+  unsigned int tramas_confirmacion_voz_clara;
+  unsigned int tramas_confirmacion_voz_dudosa;
+  unsigned int tramas_resguardo_silencio;
 } VAD_DATA;
 
-/* Call this function before using VAD: 
-   It should return allocated and initialized values of vad_data
-
-   sampling_rate: ... the sampling rate */
 VAD_DATA *vad_open(float sampling_rate);
-
-/* vad works frame by frame.
-   This function returns the frame size so that the program knows how
-   many samples have to be provided */
+void vad_establecer_ruido(VAD_DATA *vad_data, float potencia_ruido);
+void vad_configurar(VAD_DATA *vad_data, float histeresis_db,
+                  float margen_voz_clara_db,
+                  unsigned int tramas_confirmacion_voz_clara,
+                  unsigned int tramas_confirmacion_voz_dudosa,
+                  unsigned int tramas_resguardo_silencio,
+                  float tasa_actualizacion_ruido);
 unsigned int vad_frame_size(VAD_DATA *);
-
-/* Main function. For each 'time', compute the new state 
-   It returns:
-    ST_UNDEF   (0) : undefined; it needs more frames to take decission
-    ST_SILENCE (1) : silence
-    ST_VOICE   (2) : voice
-
-    x: input frame
-       It is assumed the length is frame_length */
-VAD_STATE vad(VAD_DATA *vad_data, float *x);
-
-/* Free memory
-   Returns the state of the last (undecided) states. */
+VAD_STATE vad(VAD_DATA *vad_data, float *x, float umbral);
 VAD_STATE vad_close(VAD_DATA *vad_data);
-
-/* Print actual state of vad, for debug purposes */
 void vad_show_state(const VAD_DATA *, FILE *);
 
 #endif

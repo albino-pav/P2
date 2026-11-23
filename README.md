@@ -1,205 +1,133 @@
-PAV - P2: detección de actividad vocal (VAD)
-============================================
+# P2: Detector de actividad vocal
 
-Esta práctica se distribuye a través del repositorio GitHub [Práctica 2](https://github.com/albino-pav/P2),
-y una parte de su gestión se realizará mediante esta web de trabajo colaborativo.  Al contrario que Git,
-GitHub se gestiona completamente desde un entorno gráfico bastante intuitivo. Además, está razonablemente
-documentado, tanto internamente, mediante sus [Guías de GitHub](https://guides.github.com/), como
-externamente, mediante infinidad de tutoriales, guías y vídeos disponibles gratuitamente en internet.
+## Objetivo
 
+La práctica consiste en marcar qué partes de una grabación contienen voz y cuáles son silencio. El detector analiza la potencia en tramas cortas y cambia de estado cuando se mantienen las condiciones durante cierto tiempo.
 
-Inicialización del repositorio de la práctica.
-----------------------------------------------
+## 1. Grabación y etiquetado manual
 
-Para cargar los ficheros en su ordenador personal debe seguir los pasos siguientes:
+Para el etiquetado manual se utilizó `pav_411.wav`, una grabación mono a 16 kHz con muestras PCM de 16 bits. Se trabajó con WaveSurfer y se recortó el silencio inicial de potencia muy baja antes de marcar los tramos.
 
-*  Abra una cuenta GitHub para gestionar esta y el resto de prácticas del curso.
-*  Cree un repositorio GitHub con el contenido inicial de la práctica (sólo debe hacerlo uno de los
-  integrantes del grupo de laboratorio, cuya página GitHub actuará de repositorio central del grupo):
-  -  Acceda la página de la [Práctica 2](https://github.com/albino-pav/P2).
-  -  En la parte superior derecha encontrará el botón **`Fork`**. Apriételo y, después de unos segundos,
-    se creará en su cuenta GitHub un proyecto con el mismo nombre (**P2**). Si ya tuviera uno con ese 
-    nombre, se utilizará el nombre **P2-1**, y así sucesivamente.
-*  Habilite al resto de miembros del grupo como *colaboradores* del proyecto; de este modo, podrán
-  subir sus modificaciones al repositorio central:
-  -  En la página principal del repositorio, en la pestaña **:gear:`Settings`**, escoja la opción 
-    **Collaborators** y añada a su compañero de prácticas.
-  -  Éste recibirá un email solicitándole confirmación. Una vez confirmado, tanto él como el
-    propietario podrán gestionar el repositorio, por ejemplo: crear ramas en él o subir las
-    modificaciones de su directorio local de trabajo al repositorio GitHub.
-*  En la página principal del repositorio, localice el botón **Branch: master** y úselo para crear
-  una rama nueva con los primeros apellidos de los integrantes del equipo de prácticas separados por
-  guion (**fulano-mengano**).
-*  Todos los miembros del grupo deben realizar su copia local en su ordenador personal.
-  -  Copie la dirección de su copia del repositorio apretando en el botón **Clone or download**.
-    Asegúrese de usar *Clone with HTTPS*.
-  -  Abra una sesión de Bash en su ordenador personal y vaya al directorio **PAV**. Desde ahí, ejecute:
+En la escala de potencia de WaveSurfer, el ruido de fondo está aproximadamente entre 20 y 25 dB y la voz suele superar los 40 dB. Son valores orientativos. Para las etiquetas manuales se marcaron como silencio las pausas claras, sin separar las interrupciones breves que forman parte de las palabras.
 
-    ```.sh
-    git clone dirección-del-fork-de-la-práctica
-    ```
+El ZCR cuenta los cambios de signo de la señal. Ayuda a describir algunos sonidos, aunque el ruido también puede tener un ZCR alto. Por eso se calcula y se muestra, pero el detector decide usando la potencia.
 
-  -  Vaya al directorio de la práctica `cd P2`.
+La imagen corresponde a una prueba de la variante adaptativa, que obtuvo 94,291 % en `db.v4`. El primer panel muestra el ZCR y el segundo la potencia. Las etiquetas manuales aparecen en magenta y las automáticas en amarillo, debajo se ve la señal ampliada y la vista general.
 
-  -  Cambie a la rama **fulano-mengano** con la orden:
+![Pav_411 con ZCR, potencia, señal y etiquetas manuales y automáticas](captura_411_completa.png)
 
-    ```.sh
-    git checkout fulano-mengano
-    ```
+## 2. Detector
 
-*  A partir de este momento, todos los miembros del grupo de prácticas pueden trabajar en su directorio
-  local del modo habitual, usando el repositorio remoto en GitHub como repositorio central para el trabajo colaborativo
-  de los distintos miembros del grupo de prácticas o como copia de seguridad.
-  -  Puede *confirmar* versiones del proyecto en su directorio local con las órdenes siguientes:
+El programa procesa el audio en tramas de 10 ms. Para cada trama calcula tres medidas:
 
-    ```.sh
-    git add .
-    git commit -m "Mensaje del commit"
-    ```
+- **Potencia:** calcula el promedio de las muestras al cuadrado y lo expresa en decibelios. La potencia indica el nivel de energía de la trama y es la medida que utiliza el detector para clasificarla.
+- **Amplitud media:** calcula el promedio de los valores absolutos de las muestras. Está disponible en el código, pero no se usa para decidir si hay voz.
+- **ZCR:** cuenta los cambios de signo de la señal y los relaciona con el tiempo de la trama. Se muestra en las gráficas y en la depuración, pero no interviene en la clasificación. Un ZCR alto por sí solo no distingue la voz del ruido.
 
-  -  Las versiones confirmadas, y sólo ellas, se almacenan en el repositorio y pueden ser accedidas en cualquier momento.
+### Parámetros principales
 
-*  Para interactuar con el contenido remoto en GitHub es necesario que los cambios en el directorio local estén confirmados.
+| Parámetro | Valor predeterminado | Función |
+|---|---:|---|
+| Longitud de trama | 10 ms | Duración de cada fragmento analizado. |
+| Calibración inicial | 10 tramas (100 ms) | Estima el nivel de ruido al comienzo del audio. |
+| Margen de entrada a voz (`-u`) | 5,49 dB | Se suma al nivel de ruido estimado para fijar el umbral de voz. |
+| Histéresis (`--histeresis`) | 2 dB | El umbral de salida a silencio queda 2 dB por debajo del de entrada. |
+| Margen de voz clara (`--margen-claro`) | 3 dB | Diferencia sobre el umbral para considerar clara una posible entrada en voz. |
+| Confirmación de voz clara o dudosa | 30 ms para cada caso | Tiempo que debe mantenerse la potencia sobre el umbral para confirmar voz. |
+| Confirmación de silencio | 100 ms | Tiempo por debajo del umbral de salida para confirmar el silencio. |
+| Percentil de ruido (`--percentil-ruido`) | 0 (desactivado) | Admite 1–99. Un valor mayor que 0 estima el nivel inicial con ese percentil de las potencias de todo el archivo. |
+| Actualización de ruido (`--adaptacion-ruido`) | 0 (desactivada) | Admite valores de 0 a 1; por ejemplo, 0,01 ajusta lentamente la referencia durante el silencio firme. |
 
-  -  Puede comprobar si el directorio está *limpio* (es decir, si la versión actual está confirmada) usando el comando
-    `git status`.
+La calibración predeterminada supone que las primeras 10 tramas representan el ruido de fondo, por lo que se presupone que ese inicio no contiene voz relevante. El umbral de entrada a voz es el nivel de ruido más el margen de 5,49 dB. Para salir de voz se usa el umbral de entrada menos la histéresis. Esta diferencia evita que pequeñas variaciones hagan alternar continuamente entre voz y silencio.
 
-  -  La versión actual del directorio local se sube al repositorio remoto con la orden:
+El detector usa estados intermedios: espera a confirmar la voz (`MAYBE_VOICE`) o el silencio (`MAYBE_SILENCE`) antes de cambiar de estado. Si confirma una transición, corrige su límite hasta la primera trama candidata para reducir el retraso introducido por la espera.
 
-    ```.sh
-    git push
-    ```
+Las dos opciones actúan en momentos distintos y se pueden usar por separado o juntas. `--percentil-ruido 20` activa una pasada inicial por todo el archivo y toma como referencia el percentil 20 de la potencia de sus tramas. `--adaptacion-ruido 0.01` actualiza después esa referencia con un paso del 1 % hacia la potencia de cada trama que ya está dentro de un silencio firme. El percentil fija el punto de partida; la adaptación permite seguir cambios lentos del ruido.
 
-    *  Si el repositorio remoto contiene cambios no presentes en el directorio local, `git` puede negarse
-      a subir el nuevo contenido.
+Con `-v` se muestran el tiempo, el estado, la potencia, el ZCR, el nivel de ruido y los umbrales de cada trama.
 
-      -  En ese caso, lo primero que deberemos hacer es incorporar los cambios presentes en el repositorio
-        GitHub con la orden `git pull`.
+## 3. Evaluación sobre `db.v4`
 
-      -  Es posible que, al hacer el `git pull` aparezcan *conflictos*; es decir, ficheros que se han modificado
-        tanto en el directorio local como en el repositorio GitHub y que `git` no sabe cómo combinar.
+La mejor ejecución registrada obtuvo **94,843 %** con un umbral de 5,49 dB y la corrección temporal de los límites. El resumen por clases fue:
 
-      -  Los conflictos aparecen marcados con cadenas del estilo `>>>>`, `<<<<` y `====`. Los ficheros correspondientes
-        deben ser editados para decidir qué versión preferimos conservar. Un editor avanzado, del estilo de Microsoft
-        Visual Studio Code, puede resultar muy útil para localizar los conflictos y resolverlos.
+| Clase | Sensibilidad | Precisión | F-score |
+|---|---:|---:|---:|
+| Voz | 97,12 % | 92,50 % | 96,16 % (β = 2) |
+| Silencio | 87,70 % | 95,13 % | 93,54 % (β = 0,5) |
+| **Total** |  |  | **94,843 %** |
 
-      -  Tras resolver los conflictos, se ha de confirmar los cambios con `git commit` y ya estaremos en condiciones
-        de subir la nueva versión a GitHub con el comando `git push`.
+### Pruebas de ajustes adicionales
 
+Se probaron alternativas para que la referencia de ruido y los tiempos de decisión respondieran a las características del audio:
 
-  -  Para bajar al directorio local el contenido del repositorio GitHub hay que ejecutar la orden:
+| Prueba | Ajustes | Resultado total |
+|---|---|---:|
+| Estimación por percentil | Percentil 20, actualización 0,01 y confirmación fija de 30 ms | 94,074 % |
+| Estimación por percentil y confirmación variable | Los mismos ajustes, con 30 ms para voz clara y 50 ms para voz dudosa | 94,291 % |
+| Valores predeterminados restaurados | Calibración inicial y actualización de ruido desactivada | 94,796 % |
 
-    ```.sh
-    git pull
-    ```
-  
-    *  Si el repositorio local contiene cambios no presentes en el directorio remoto, `git` puede negarse a bajar
-      el contenido de este último.
+Las variantes adaptativas no superaron la mejor medición de 94,843 %. Por eso los valores predeterminados dejan desactivados el percentil y la actualización: se calibra con las primeras 10 tramas y después se mantiene fija la referencia.
 
-      -  La resolución de los posibles conflictos se realiza como se explica más arriba para
-        la subida del contenido local con el comando `git push`.
+La última ejecución con los valores predeterminados obtuvo 94,796 %:
 
+| Clase | Sensibilidad | Precisión | F-score |
+|---|---:|---:|---:|
+| Voz | 97,66 % | 90,87 % | 96,22 % (β = 2) |
+| Silencio | 84,68 % | 95,86 % | 93,39 % (β = 0,5) |
+| **Total** |  |  | **94,796 %** |
 
+Este resultado quedó 0,047 puntos porcentuales por debajo del mejor registrado. Ambos se redondean a 94,8 % con una cifra decimal.
 
-*  Al final de la práctica, la rama **fulano-mengano** del repositorio GitHub servirá para remitir la
-  práctica para su evaluación utilizando el mecanismo *pull request*.
-  -  Vaya a la página principal de la copia del repositorio y asegúrese de estar en la rama
-    **fulano-mengano**.
-  -  Pulse en el botón **New pull request**, y siga las instrucciones de GitHub.
+También se valoró combinar potencia y ZCR para resolver tramas dudosas, estimar el ruido mediante amplitudes mínimas o aumentar automáticamente el nivel de los audios bajos. Esas reglas no se incorporaron a la evaluación final: el ZCR y la amplitud media no participan en la clasificación, y no se implementó una ganancia automática. La prueba adaptativa realizada estimaba el ruido mediante percentiles de potencia, no mediante el promedio de amplitudes mínimas.
 
+## 4. Revisión auditiva de ejemplos
 
-Entrega de la práctica.
------------------------
+Se escucharon ejemplos con puntuaciones altas, medias y bajas para identificar qué condiciones podían explicar los aciertos y los errores. La revisión manual de los dos integrantes ayudó a decidir qué audios convenía analizar con más detalle y qué cambios probar.
 
-Responda, en este mismo documento (README.md), los ejercicios indicados a continuación. Este documento es
-un fichero de texto escrito con un formato denominado _**markdown**_. La principal característica de este
-formato es que, manteniendo la legibilidad cuando se visualiza con herramientas en modo texto (`more`,
-`less`, editores varios, ...), permite amplias posibilidades de visualización con formato en una amplia
-gama de aplicaciones; muy notablemente, **GitHub**, **Doxygen** y **Facebook** (ciertamente, :eyes:).
+- En `pav_2171.wav` la voz se distingue con claridad de un ruido suave, parecido a una brisa o interferencia.
+- En `pav_2361.wav` las pausas son más largas y separan mejor los tramos de voz y silencio.
+- En `pav_2109.wav` hay un ruido de fondo parecido a un petardeo, con un volumen cercano al de la voz.
+- En `pav_2121.wav` la grabación tiene poco nivel. Subir el volumen del portátil ayuda a escucharla, pero no cambia la amplitud que procesa el programa.
 
-En GitHub. cuando existe un fichero denominado README.md en el directorio raíz de un repositorio, se
-interpreta y muestra al entrar en el repositorio.
+En `db.v4` hay varias grabaciones con algunos nombres. La tabla muestra el promedio de acierto de cada nombre y el número de grabaciones incluidas:
 
-Debe redactar las respuestas a los ejercicios usando Markdown. Puede encontrar información acerca de su
-sintáxis en la página web [Sintaxis de Markdown](https://daringfireball.net/projects/markdown/syntax).
-También puede consultar el documento adjunto [MARKDOWN.md](MARKDOWN.md), en el que se enumeran los
-elementos más relevantes para completar la redacción de esta práctica.
+| Archivo | Grabaciones | Acierto medio |
+|---|---:|---:|
+| `pav_2109` | 1 | 98,016 % |
+| `pav_2171` | 9 | 95,601 % |
+| `pav_2121` | 6 | 92,927 % |
+| `pav_2361` | 2 | 98,828 % |
 
-Recuerde realizar el *pull request* una vez completada la práctica.
+La revisión mostró que una misma configuración no obtiene el mismo resultado en todos los audios. Por eso se probaron ajustes para adaptar la referencia de ruido y los tiempos de confirmación. En `db.v4`, esos cambios no superaron la puntuación de la configuración anterior.
 
-Ejercicios
-----------
+## 5. Ampliación
 
-### Etiquetado manual de los segmentos de voz y silencio
+La opción `-w` genera un WAV de salida poniendo a cero los tramos que el detector clasifica como silencio. No aplica una cancelación espectral del ruido.
 
-- Grabe una señal de voz en la que haya distintos segmentos de voz y silencio. La señal debe ser de un
-  solo canal (monofónica), grabada con una frecuencia de muestreo de 16 kHz y codificada con PCM lineal
-  de 16 bits.
+Los parámetros principales y sus valores predeterminados se describen en la sección 2. Se pueden cambiar al ejecutar el programa; `./bin/vad --help` muestra los nombres y formatos de todas las opciones.
 
-  Nombre a la señal como `pav_GGP#.wav`, donde GG es el grupo de clase (por ejemplo, 21 o 41), P es el
-  número del puesto de trabajo y # es el número de señal (si sólo se entrega una señal, este número es
-  1).
+Meson genera la cabecera de `docopt_c` al compilar, a partir de `src/vad.docopt`.
 
-  > NOTA: es habitual que las grabaciones empiecen con un segmento de silencio de potencia extremadamente
-  > bajo; mucho más bajo que el nivel de ruido normal durante el resto de la señal. Si esto ocurre, la
-  > detección usando como nivel de referencia para el silencio el segmento inicial se ve seriamente
-  > dificultada. Puede detectar esta situación visualizando el nivel de potencia estimado por el propio
-  > `wavesurfer` y corregirla usando la herramienta de corte (:scissors:).
+Esta captura muestra la ayuda y los valores predeterminados de la configuración actual:
 
-- Etiquete manualmente los segmentos de voz y silencio del fichero grabado al efecto. Inserte, a
-  continuación, una captura de `wavesurfer` en la que se vea con claridad la señal temporal, el contorno de
-  potencia y la tasa de cruces por cero, junto con el etiquetado manual de los segmentos.
+![Ayuda de vad con los parámetros predeterminados](captura_ayuda.png)
 
-- A la vista de la gráfica, indique qué valores considera adecuados para las magnitudes siguientes:
+## Compilación y evaluación
 
-  * Incremento del nivel potencia en dB, respecto al nivel correspondiente al silencio inicial, para
-    estar seguros de que un segmento de señal se corresponde con voz.
+Desde la carpeta `P2`:
 
-  * Duración mínima razonable de los segmentos de voz y silencio.
+```sh
+meson setup --reconfigure bin
+ninja -C bin
+scripts/run_vad.sh 5.49
+```
 
-  * ¿Es capaz de sacar alguna conclusión a partir de la evolución de la tasa de cruces por cero?
+Para guardar las etiquetas de voz y silencio:
 
+```sh
+./bin/vad -i pav_411.wav -o pav_411_auto.vad
+```
 
-### Desarrollo del detector de actividad vocal
+## Comentarios finales
 
-- Complete el código de los ficheros de la práctica para implementar un detector de actividad vocal en
-  tiempo real tan exacto como sea posible. Tome como objetivo la maximización de la puntuación-F `TOTAL`.
-
-- Inserte una gráfica en la que se vea con claridad la señal temporal, el etiquetado manual y la detección
-  automática conseguida para el fichero grabado al efecto. 
-
-- Explique, si existen. las discrepancias entre el etiquetado manual y la detección automática.
-
-- Evalúe los resultados sobre la base de datos `db.v4` con el script `vad_evaluation.pl` e inserte a 
-  continuación las tasas de sensibilidad (*recall*) y precisión para el conjunto de la base de datos (sólo
-  el resumen).
-
-
-### Trabajos de ampliación
-
-#### Cancelación del ruido en los segmentos de silencio
-
-- Si ha desarrollado el algoritmo para la cancelación de los segmentos de silencio, inserte una gráfica en
-  la que se vea con claridad la señal antes y después de la cancelación (puede que `wavesurfer` no sea la
-  mejor opción para esto, ya que no es capaz de visualizar varias señales al mismo tiempo).
-
-#### Gestión de las opciones del programa usando `docopt_c`
-
-- Si ha usado `docopt_c` para realizar la gestión de las opciones y argumentos del programa `vad`, inserte
-  una captura de pantalla en la que se vea el mensaje de ayuda del programa.
-
-
-### Contribuciones adicionales y/o comentarios acerca de la práctica
-
-- Indique a continuación si ha realizado algún tipo de aportación suplementaria (algoritmos de detección o 
-  parámetros alternativos, etc.).
-
-- Si lo desea, puede realizar también algún comentario acerca de la realización de la práctica que
-  considere de interés de cara a su evaluación.
-
-
-### Antes de entregar la práctica
-
-Recuerde comprobar que el repositorio cuenta con los códigos correctos y en condiciones de ser 
-correctamente compilados con la orden `meson bin; ninja -C bin`. El programa generado (`bin/vad`) será
-el usado, sin más opciones, para realizar la evaluación *ciega* del sistema.
+La puntuación de `db.v4` permitió escoger los parámetros con mejor resultado en esa base. La escucha de ejemplos concretos ayudó a entender por qué el ruido de fondo, el nivel de grabación y la duración de las pausas pueden cambiar la detección. El comportamiento en audios distintos se tendrá que comprobar con nuevas evaluaciones.

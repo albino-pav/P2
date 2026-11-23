@@ -7,3 +7,7 @@ __MAC*
 *bak
 *~
 db.v4/
+
+# Ficheros generados durante pruebas locales
+pav_411_silenciado.wav
+pav_411_debug.tsv

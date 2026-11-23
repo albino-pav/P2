@@ -1,4 +1,4 @@
-VAD - Voice Activity Detector
+VAD - Detector de actividad vocal
 
 Usage:
    vad [options] -i <input-wav> -o <output-vad> [-w <output-wav>]
@@ -6,9 +6,17 @@ Usage:
    vad --version
 
 Options:
-   -i FILE, --input-wav=FILE   WAVE file for voice activity detection
-   -o FILE, --output-vad=FILE  Label file with the result of VAD
-   -w FILE, --output-wav=FILE  WAVE file with silences cleared
-   -v, --verbose  Show debug information
-   -h, --help     Show this screen
-   --version      Show the version of the project
+   -i FILE, --input-wav=FILE       Archivo WAV de entrada
+   -o FILE, --output-vad=FILE      Archivo con las etiquetas de voz y silencio
+   -w FILE, --output-wav=FILE      WAV de salida con los tramos de silencio a cero
+   -u REAL, --umbral=REAL          Margen sobre el ruido estimado en dB [default: 5.49]
+   --histeresis=REAL               Diferencia entre los umbrales de entrada y salida en dB [default: 2.0]
+   --margen-claro=REAL             Margen para considerar clara una detección de voz en dB [default: 3.0]
+   --confirmacion-clara-ms=MS      Duración para confirmar voz clara [default: 30]
+   --confirmacion-dudosa-ms=MS     Duración para confirmar voz cercana al umbral [default: 30]
+   --resguardo-silencio-ms=MS      Duración antes de confirmar el paso a silencio [default: 100]
+   --percentil-ruido=VALOR         Percentil para estimar el ruido; 0 usa las primeras 10 tramas [default: 0]
+   --adaptacion-ruido=REAL         Velocidad de actualización del ruido entre 0 y 1 [default: 0.0]
+   -v, --verbose                   Mostrar datos de depuración
+   -h, --help                      Mostrar esta ayuda
+   --version                       Mostrar la versión del programa
